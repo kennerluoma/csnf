@@ -17,7 +17,7 @@ Ordered by risk. Prove the build agent on one design before wrapping it in an ap
 - **Exit:** two designs → two PRs with previews, zero local steps.
 
 ## Phase 2 · The app: projects + provisioning + build button — MOSTLY DONE 2026-09-16
-- Done: provisioner (Sanity, GitHub, secrets, first deploy), local build runner, Tauri app with projects, new project (Figma picker), project screen (links, domain, previews + merge, checklist, notes, build history), job records. Pending: Worker API + D1 for shared state (needs D1 permission on the CF token), webhook.
+- Done: provisioner (Sanity, GitHub, secrets, first deploy), local build runner, Tauri app with projects, new project (Figma picker), project screen (links, domain, previews + merge, checklist, notes, build history), job records. Worker API + D1 deployed 2026-09-16 (agency-api.<sub>.workers.dev): projects/jobs mirrored from the CLI, GitHub webhooks registered on new repos. Desktop app rebuilt to the design handoff (sidebar, activity drawer, phase-aware project screen).
 
 - Worker: Hono, D1 schema (doc 02), Workflows for `provision` and `build`, GitHub webhook, Access in front.
 - Dashboard: Projects, New project, Project → Jobs tab, Job timeline.
@@ -28,14 +28,14 @@ Ordered by risk. Prove the build agent on one design before wrapping it in an ap
 - Deployments cache + tab; `add_domain` job with pending state.
 - **Exit:** a test domain on our zone goes pending → active from the dashboard; deployments list matches Cloudflare.
 
-## Phase 4 · Rebuild quality — rules + mapping.json contract written 2026-09-16; untested
+## Phase 4 · Rebuild quality — rules + mapping.json contract written 2026-09-16; rebuild test in progress with fixtures/studio-site/manifest.v2.json
 
 - `mapping.json`, manifest diff, touch-only-changed-nodes, seed-content merge rules.
 - **Exit:** three design edits (copy, add section, remove section) → three PRs; hand edits on `main` survive.
 
 ## Phase 5 · Later
 
-Figma plugin "Build this file" button, mobile frames, Slack notifications, own-container runner, auto-merge on high confidence, per-client token scoping, teardown checklist tooling.
+Figma plugin (groundwork in platform/apps/figma-plugin; needs loading in Figma desktop), mobile frames, Slack notifications, own-container runner, auto-merge on high confidence, per-client token scoping, teardown checklist tooling.
 
 ## First tasks
 
