@@ -1,0 +1,30 @@
+/* Design tokens. The build agent overwrites this file from the Figma manifest.
+   Naming: semantic first (--color-ink, --color-surface), raw scale second. */
+@theme {
+  --color-ink: #0d1020;
+  --color-ink-muted: #6d7893;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f4f5f8;
+  --color-accent: #7fd4c1;
+  --color-line: #e3e6ee;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-sans);
+
+  --text-display: 3.5rem;
+  --text-display--line-height: 1.05;
+  --text-h2: 2.25rem;
+  --text-h2--line-height: 1.15;
+  --text-h3: 1.5rem;
+  --text-h3--line-height: 1.25;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.6;
+  --text-small: 0.875rem;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+
+  --container-content: 72rem;
+  --spacing-section: 6rem;
+}

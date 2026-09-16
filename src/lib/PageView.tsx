@@ -1,0 +1,24 @@
+import { RenderBlocks } from '#/blocks/RenderBlocks'
+import { Container, Heading, Section, Text } from '#/ui'
+import type { PageDoc } from '#/sanity/types'
+
+export function PageView({ page }: { page: PageDoc | null }) {
+  if (!page) {
+    return (
+      <Section>
+        <Container>
+          <Heading level={1}>No content yet</Heading>
+          <Text muted>
+            Create a <code>page</code> document with slug <code>home</code> in
+            the studio at <a href="/studio">/studio</a>.
+          </Text>
+        </Container>
+      </Section>
+    )
+  }
+  return (
+    <main>
+      <RenderBlocks blocks={page.blocks} />
+    </main>
+  )
+}

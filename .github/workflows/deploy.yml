@@ -1,0 +1,62 @@
+name: Deploy
+# main → production deploy. Any other branch → versioned preview URL aliased to the branch name.
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      VITE_SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+      VITE_SANITY_DATASET: ${{ vars.SANITY_DATASET || 'development' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Deploy production
+        if: github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          command: deploy
+
+      - name: Build studio
+        if: github.ref == 'refs/heads/main'
+        run: pnpm build:studio
+        env:
+          SANITY_STUDIO_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET || 'development' }}
+
+      - name: Deploy studio
+        if: github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          workingDirectory: studio
+          command: deploy
+
+      - name: Preview alias from branch name
+        if: github.ref != 'refs/heads/main'
+        id: alias
+        run: echo "alias=$(echo '${{ github.ref_name }}' | tr '/_' '--' | tr -cd 'a-zA-Z0-9-' | cut -c1-28 | tr 'A-Z' 'a-z')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload preview version
+        if: github.ref != 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          command: versions upload --preview-alias ${{ steps.alias.outputs.alias }}

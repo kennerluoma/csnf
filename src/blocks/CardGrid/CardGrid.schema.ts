@@ -1,0 +1,47 @@
+import { defineField, defineType } from '@sanity/types'
+
+export const cardGridSchema = defineType({
+  name: 'cardGrid',
+  title: 'Card grid',
+  type: 'object',
+  fields: [
+    defineField({ name: 'eyebrow', type: 'string' }),
+    defineField({ name: 'heading', type: 'string' }),
+    defineField({
+      name: 'columns',
+      type: 'number',
+      options: { list: [2, 3, 4] },
+      initialValue: 3,
+    }),
+    defineField({
+      name: 'cards',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          name: 'card',
+          fields: [
+            defineField({
+              name: 'title',
+              type: 'string',
+              validation: (r) => r.required(),
+            }),
+            defineField({ name: 'body', type: 'text', rows: 3 }),
+            defineField({ name: 'image', type: 'imageWithAlt' }),
+            defineField({ name: 'link', type: 'link' }),
+          ],
+          preview: { select: { title: 'title', media: 'image' } },
+        },
+      ],
+    }),
+  ],
+  preview: {
+    select: { title: 'heading' },
+    prepare: ({ title }) => ({
+      title: title ?? 'Card grid',
+      subtitle: 'Card grid',
+    }),
+  },
+})
+
+export const cardGridProjection = /* groq */ `_type == "cardGrid" => { eyebrow, heading, columns, cards[]{ _key, title, body, image, link } }`

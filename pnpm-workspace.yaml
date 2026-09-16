@@ -1,0 +1,8 @@
+packages:
+  - studio
+allowBuilds:
+  esbuild: true
+  lightningcss: true
+  sharp: true
+  unrs-resolver: true
+  workerd: true

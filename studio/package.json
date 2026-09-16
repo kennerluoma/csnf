@@ -1,0 +1,22 @@
+{
+  "name": "studio",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev --port 3333",
+    "build": "sanity build --yes",
+    "deploy": "wrangler deploy",
+    "typegen": "sanity schema extract --path ../schema.json && sanity typegen generate"
+  },
+  "dependencies": {
+    "@sanity/types": "^4.0.0",
+    "@sanity/vision": "^6.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "sanity": "^6.0.0",
+    "styled-components": "^6.1.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.70.0"
+  }
+}

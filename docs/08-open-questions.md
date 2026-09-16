@@ -1,0 +1,18 @@
+# 08 · Decisions (answered 2026-09-16)
+
+| #   | Question                 | Decision                                                                                                                                                                                                                                                     |
+| --- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Admin stack              | Cloudflare-native: Hono on Workers, React SPA with **TanStack Router**, D1, Workflows, Access.                                                                                                                                                               |
+| 2   | Build agent runner       | GitHub Actions for v1. Own container later if needed.                                                                                                                                                                                                        |
+| 3   | Client site framework    | **TanStack Start**, prerendered, deployed to Pages. Chosen over vinext: no Next code to be compatible with; the agent writes blocks, not framework code. Confirm prerender + SPA-only studio route at scaffold time; fallback is Workers with static assets. |
+| 4   | Sanity studio            | Embedded at `/studio`. An `admin.<domain>` subdomain is acceptable later. Never `*.sanity.studio`.                                                                                                                                                           |
+| 5   | Designers                | In-house. The design contract stands as written.                                                                                                                                                                                                             |
+| 6   | Agent budget per run     | Start ~$10 per Build; tune after seeing outputs.                                                                                                                                                                                                             |
+| 7   | Figma Variables          | Not used. We author the designs; the extractor gathers distinct colours/fonts and the agent writes them as CSS vars + Tailwind theme.                                                                                                                        |
+| 8   | Orgs                     | Personal accounts for Phase 0–1 proof of concept. Create GitHub org + Sanity org before Phase 2.                                                                                                                                                             |
+| 9   | Domains                  | Strongly recommend DNS on our Cloudflare; that path is fully automated. Bring-your-own supported as a manual CNAME path with polling; extra setup/cost handled commercially.                                                                                 |
+| 10  | Rebuild / code ownership | No distinction between hand-written and generated code; ~99.9% will be AI-written. During dev, anything goes. Post-launch, every change is a branch → PR → preview → merge to `main`.                                                                        |
+
+## Still open
+
+- Exact Claude Code headless flags and the Cloudflare Pages custom-domain endpoints: verify against current docs at implementation time (docs 03, 06).
