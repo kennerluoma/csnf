@@ -51,9 +51,14 @@ Cloudflare-native, one Worker, one deploy:
 
 Alternative if you'd rather not bet on Workflows: a `jobs` table plus a Queue consumer that runs steps and writes status. Same data model.
 
-## Where the build agent runs (doc 08 Q2)
+## Where the build agent runs (doc 08 Q2, revised 2026-09-16)
 
-**GitHub Actions, v1.** The repo is already checked out, secrets are already there, logs and a run URL are free, and a push from the runner is what triggers the deploy anyway. Runner limits (6h per job, shared runners) are fine at this scale. Move to an own-container runner only when speed or sandboxing demands it; the agent program doesn't change.
+Two runners, same job row, `jobs.runner = local | actions`:
+
+- **Local (desktop app).** A Tauri 2 shell around the same React admin UI spawns `claude -p` on the operator's Mac using their Claude Code login (Max subscription), with the repo cloned locally, the dev server running, and Playwright screenshots on local hardware. Cheapest and fastest for Phase 0–2, and secrets stay in the Keychain. Ties a job to one laptop being awake.
+- **GitHub Actions.** Unattended and team runs. Needs `ANTHROPIC_API_KEY` in repo secrets; pays per token. The repo is already checked out, logs and a run URL are free, and the push triggers the deploy.
+
+The agent program (`.agency/prompts/translate.md` + `AGENTS.md` + the `agency` scripts) is identical on both. First real run (local, Opus, 2026-09-16): 81 turns, 6 min, $3.66 token-equivalent, output matched the render.
 
 ## How the app learns a run finished
 

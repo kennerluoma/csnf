@@ -30,4 +30,4 @@ Quality gates: `pnpm typecheck`, `pnpm lint`, `pnpm check`, `pnpm build`, `pnpm 
 
 ## Status
 
-2026-09-16 · starter scaffolded (blocks, primitives, tokens, Sanity schema, studio app, deploy + CI workflows). Not yet: a Sanity project, Cloudflare secrets, the Figma design, `translate.yml`, the extractor, the admin.
+2026-09-16 · starter scaffolded and deployed (site + studio on Workers). Extractor and screenshot scripts working. First local agent run produced PR #1 matching the Figma render. Not yet: `translate.yml`, the admin (desktop app + Worker API), provisioning, DNS.

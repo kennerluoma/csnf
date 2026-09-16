@@ -100,20 +100,12 @@
           "id": "5:11",
           "name": "Header",
           "type": "Header",
-          "size": [
-            1440,
-            44
-          ],
+          "size": [1440, 44],
           "background": "#f7f7f7",
           "layout": {
             "direction": "row",
             "gap": 10,
-            "padding": [
-              8,
-              24,
-              8,
-              24
-            ],
+            "padding": [8, 24, 8, 24],
             "align": "center",
             "justify": "space_between"
           },
@@ -126,20 +118,12 @@
             "id": "5:11",
             "type": "FRAME",
             "name": "Header",
-            "size": [
-              1440,
-              44
-            ],
+            "size": [1440, 44],
             "fill": "#f7f7f7",
             "layout": {
               "direction": "row",
               "gap": 10,
-              "padding": [
-                8,
-                24,
-                8,
-                24
-              ],
+              "padding": [8, 24, 8, 24],
               "align": "center",
               "justify": "space_between"
             },
@@ -148,19 +132,11 @@
                 "id": "5:18",
                 "type": "FRAME",
                 "name": "container",
-                "size": [
-                  1392,
-                  28
-                ],
+                "size": [1392, 28],
                 "layout": {
                   "direction": "row",
                   "gap": 1275,
-                  "padding": [
-                    0,
-                    0,
-                    0,
-                    0
-                  ],
+                  "padding": [0, 0, 0, 0],
                   "align": "center",
                   "justify": "space_between"
                 },
@@ -169,19 +145,11 @@
                     "id": "5:25",
                     "type": "FRAME",
                     "name": "Logo",
-                    "size": [
-                      74,
-                      28
-                    ],
+                    "size": [74, 28],
                     "layout": {
                       "direction": "row",
                       "gap": 12,
-                      "padding": [
-                        0,
-                        0,
-                        0,
-                        0
-                      ],
+                      "padding": [0, 0, 0, 0],
                       "align": "center"
                     },
                     "children": [
@@ -189,20 +157,14 @@
                         "id": "5:14",
                         "type": "BOOLEAN_OPERATION",
                         "name": "logomark",
-                        "size": [
-                          28,
-                          28
-                        ],
+                        "size": [28, 28],
                         "fill": "#000000",
                         "children": [
                           {
                             "id": "5:6",
                             "type": "RECTANGLE",
                             "name": "outer",
-                            "size": [
-                              28,
-                              28
-                            ],
+                            "size": [28, 28],
                             "fill": "#000000",
                             "radius": 9999
                           },
@@ -210,10 +172,7 @@
                             "id": "5:13",
                             "type": "RECTANGLE",
                             "name": "inner",
-                            "size": [
-                              16,
-                              16
-                            ],
+                            "size": [16, 16],
                             "fill": "#000000",
                             "radius": 9999
                           }
@@ -223,10 +182,7 @@
                         "id": "5:24",
                         "type": "TEXT",
                         "name": "wordmark",
-                        "size": [
-                          34,
-                          15
-                        ],
+                        "size": [34, 15],
                         "fill": "#000000",
                         "text": "Name",
                         "font": "Inter 12/500"
@@ -237,19 +193,11 @@
                     "id": "5:10",
                     "type": "FRAME",
                     "name": "nav",
-                    "size": [
-                      89,
-                      15
-                    ],
+                    "size": [89, 15],
                     "layout": {
                       "direction": "row",
                       "gap": 20,
-                      "padding": [
-                        0,
-                        0,
-                        0,
-                        0
-                      ],
+                      "padding": [0, 0, 0, 0],
                       "align": "center"
                     },
                     "children": [
@@ -257,10 +205,7 @@
                         "id": "5:8",
                         "type": "TEXT",
                         "name": "Home",
-                        "size": [
-                          34,
-                          15
-                        ],
+                        "size": [34, 15],
                         "fill": "#000000",
                         "text": "Home",
                         "font": "Inter 12/400"
@@ -269,10 +214,7 @@
                         "id": "5:9",
                         "type": "TEXT",
                         "name": "About",
-                        "size": [
-                          35,
-                          15
-                        ],
+                        "size": [35, 15],
                         "fill": "#000000",
                         "text": "About",
                         "font": "Inter 12/400"
@@ -288,10 +230,7 @@
           "id": "5:36",
           "name": "Hero",
           "type": "Hero",
-          "size": [
-            1392,
-            240
-          ],
+          "size": [1392, 240],
           "background": "#f7f7f7",
           "text": {
             "text": "Page Title"
@@ -300,20 +239,14 @@
             "id": "5:36",
             "type": "GROUP",
             "name": "Hero",
-            "size": [
-              1392,
-              240
-            ],
+            "size": [1392, 240],
             "radius": 8,
             "children": [
               {
                 "id": "5:32",
                 "type": "RECTANGLE",
                 "name": "Hero BG",
-                "size": [
-                  1392,
-                  240
-                ],
+                "size": [1392, 240],
                 "fill": "#f7f7f7",
                 "radius": 8
               },
@@ -321,10 +254,7 @@
                 "id": "5:35",
                 "type": "TEXT",
                 "name": "Page Title",
-                "size": [
-                  359,
-                  87
-                ],
+                "size": [359, 87],
                 "fill": "#000000",
                 "text": "Page Title",
                 "font": "Inter 72/900 center"
@@ -336,20 +266,12 @@
           "id": "5:12",
           "name": "Footer",
           "type": "Footer",
-          "size": [
-            1440,
-            143
-          ],
+          "size": [1440, 143],
           "background": "#000000",
           "layout": {
             "direction": "column",
             "gap": 48,
-            "padding": [
-              48,
-              24,
-              48,
-              24
-            ],
+            "padding": [48, 24, 48, 24],
             "align": "center",
             "justify": "center"
           },
@@ -360,20 +282,12 @@
             "id": "5:12",
             "type": "FRAME",
             "name": "Footer",
-            "size": [
-              1440,
-              143
-            ],
+            "size": [1440, 143],
             "fill": "#000000",
             "layout": {
               "direction": "column",
               "gap": 48,
-              "padding": [
-                48,
-                24,
-                48,
-                24
-              ],
+              "padding": [48, 24, 48, 24],
               "align": "center",
               "justify": "center"
             },
@@ -382,19 +296,11 @@
                 "id": "5:26",
                 "type": "FRAME",
                 "name": "Logo",
-                "size": [
-                  34,
-                  47
-                ],
+                "size": [34, 47],
                 "layout": {
                   "direction": "column",
                   "gap": 4,
-                  "padding": [
-                    0,
-                    0,
-                    0,
-                    0
-                  ],
+                  "padding": [0, 0, 0, 0],
                   "align": "center",
                   "justify": "center"
                 },
@@ -403,20 +309,14 @@
                     "id": "5:27",
                     "type": "BOOLEAN_OPERATION",
                     "name": "logomark",
-                    "size": [
-                      28,
-                      28
-                    ],
+                    "size": [28, 28],
                     "fill": "#ffffff",
                     "children": [
                       {
                         "id": "5:28",
                         "type": "RECTANGLE",
                         "name": "outer",
-                        "size": [
-                          28,
-                          28
-                        ],
+                        "size": [28, 28],
                         "fill": "#000000",
                         "radius": 9999
                       },
@@ -424,10 +324,7 @@
                         "id": "5:29",
                         "type": "RECTANGLE",
                         "name": "inner",
-                        "size": [
-                          16,
-                          16
-                        ],
+                        "size": [16, 16],
                         "fill": "#000000",
                         "radius": 9999
                       }
@@ -437,10 +334,7 @@
                     "id": "5:30",
                     "type": "TEXT",
                     "name": "wordmark",
-                    "size": [
-                      34,
-                      15
-                    ],
+                    "size": [34, 15],
                     "fill": "#ffffff",
                     "text": "Name",
                     "font": "Inter 12/500 center"
