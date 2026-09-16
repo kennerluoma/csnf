@@ -55,7 +55,7 @@ Alternative if you'd rather not bet on Workflows: a `jobs` table plus a Queue co
 
 Two runners, same job row, `jobs.runner = local | actions`:
 
-- **Local (desktop app).** A Tauri 2 shell around the same React admin UI spawns `claude -p` on the operator's Mac using their Claude Code login (Max subscription), with the repo cloned locally, the dev server running, and Playwright screenshots on local hardware. Cheapest and fastest for Phase 0–2, and secrets stay in the Keychain. Ties a job to one laptop being awake.
+- **Local (desktop app).** A Tauri 2 shell around the same React admin UI spawns `claude -p` on the operator's Mac using **their own** Claude Code login (each of the 2–3 operators uses a personal subscription; nobody shares keys), with the repo cloned locally, the dev server running, and Playwright screenshots on local hardware. Cheapest and fastest, and secrets stay in the Keychain. Ties a job to one laptop being awake.
 - **GitHub Actions.** Unattended and team runs. Needs `ANTHROPIC_API_KEY` in repo secrets; pays per token. The repo is already checked out, logs and a run URL are free, and the push triggers the deploy.
 
 The agent program (`.agency/prompts/translate.md` + `AGENTS.md` + the `agency` scripts) is identical on both. First real run (local, Opus, 2026-09-16): 81 turns, 6 min, $3.66 token-equivalent, output matched the render.
