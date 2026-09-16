@@ -17,7 +17,8 @@
     "typecheck": "tsc --noEmit",
     "sanity:typegen": "pnpm --filter studio typegen",
     "dev:studio": "pnpm --filter studio dev",
-    "build:studio": "pnpm --filter studio build"
+    "build:studio": "pnpm --filter studio build",
+    "seed": "node --env-file=.env --experimental-strip-types scripts/seed.ts"
   },
   "dependencies": {
     "@portabletext/react": "^8.0.1",
@@ -47,5 +48,6 @@
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "wrangler": "^4.70.0"
-  }
+  },
+  "packageManager": "pnpm@11.21.0"
 }
