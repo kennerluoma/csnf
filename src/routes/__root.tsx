@@ -1,7 +1,16 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRoute,
+} from '@tanstack/react-router'
+import { SiteFooter } from '#/lib/SiteFooter'
+import { SiteHeader } from '#/lib/SiteHeader'
+import { getSiteSettings } from '#/lib/page'
 import appCss from '#/styles/app.css?url'
 
 export const Route = createRootRoute({
+  loader: () => getSiteSettings(),
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -23,6 +32,7 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootDocument,
+  component: RootLayout,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -36,5 +46,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
+  )
+}
+
+/* Site chrome from the `siteSettings` document around every page. */
+function RootLayout() {
+  const settings = Route.useLoaderData()
+  return (
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader settings={settings} />
+      <div className="flex-1">
+        <Outlet />
+      </div>
+      <SiteFooter settings={settings} />
+    </div>
   )
 }
