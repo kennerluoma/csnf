@@ -19,6 +19,7 @@
     "dev:studio": "pnpm --filter studio dev",
     "build:studio": "pnpm --filter studio build",
     "seed": "node --env-file=.env --experimental-strip-types scripts/seed.ts",
+    "pages": "node --env-file=.env --experimental-strip-types scripts/pages.ts",
     "extract": "node --env-file=.env --experimental-strip-types scripts/extract.ts",
     "shot": "node --env-file=.env --experimental-strip-types scripts/shot.ts"
   },

@@ -4,8 +4,8 @@ export type SanityImage = {
   _type: 'image'
   asset?: { _ref: string; _type: 'reference' }
   alt?: string
-  hotspot?: unknown
-  crop?: unknown
+  hotspot?: JsonValue
+  crop?: JsonValue
 }
 
 export type Link = { label: string; href: string }
@@ -26,6 +26,13 @@ export type PageDoc = {
   title: string
   slug: string
   blocks: Array<AnyBlock> | null
+}
+
+export type SiteSettings = {
+  siteName?: string
+  logo?: SanityImage
+  nav?: Array<Link>
+  footerText?: string
 }
 
 export type RichTextValue = Array<PortableTextBlock>

@@ -5,6 +5,20 @@ export const heroSchema = defineType({
   title: 'Hero',
   type: 'object',
   fields: [
+    defineField({
+      name: 'layout',
+      type: 'string',
+      description:
+        'Split: text beside the image. Panel: centred in a tinted rounded panel.',
+      options: {
+        list: [
+          { title: 'Split', value: 'split' },
+          { title: 'Panel', value: 'panel' },
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'split',
+    }),
     defineField({ name: 'eyebrow', type: 'string' }),
     defineField({
       name: 'heading',
@@ -21,4 +35,4 @@ export const heroSchema = defineType({
   },
 })
 
-export const heroProjection = /* groq */ `_type == "hero" => { eyebrow, heading, body, cta, image }`
+export const heroProjection = /* groq */ `_type == "hero" => { layout, eyebrow, heading, body, cta, image }`

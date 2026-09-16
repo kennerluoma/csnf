@@ -10,14 +10,38 @@ function cx(...parts: Array<string | false | null | undefined>) {
 }
 
 export function Section({
+  as: Tag = 'section',
   tone = 'default',
+  spacing = 'section',
   className,
   ...rest
-}: ComponentPropsWithoutRef<'section'> & { tone?: 'default' | 'alt' | 'ink' }) {
+}: ComponentPropsWithoutRef<'section'> & {
+  as?: 'section' | 'header' | 'footer'
+  tone?: 'default' | 'alt' | 'ink'
+  spacing?: 'section' | 'gutter' | 'bar'
+}) {
   return (
-    <section
+    <Tag
       className={cx(
-        'py-section',
+        { section: 'py-section', gutter: 'py-gutter', bar: 'py-bar' }[spacing],
+        tone === 'alt' && 'bg-surface-alt',
+        tone === 'ink' && 'bg-ink text-surface',
+        className,
+      )}
+      {...rest}
+    />
+  )
+}
+
+export function Panel({
+  tone = 'alt',
+  className,
+  ...rest
+}: ComponentPropsWithoutRef<'div'> & { tone?: 'alt' | 'ink' }) {
+  return (
+    <div
+      className={cx(
+        'rounded-md',
         tone === 'alt' && 'bg-surface-alt',
         tone === 'ink' && 'bg-ink text-surface',
         className,
@@ -33,7 +57,7 @@ export function Container({
 }: ComponentPropsWithoutRef<'div'>) {
   return (
     <div
-      className={cx('mx-auto w-full max-w-content px-6', className)}
+      className={cx('mx-auto w-full max-w-content px-gutter', className)}
       {...rest}
     />
   )
@@ -91,7 +115,7 @@ export function Heading({
   return (
     <Tag
       className={cx(
-        'font-display font-semibold tracking-tight text-balance',
+        'font-display text-balance',
         { display: 'text-display', h2: 'text-h2', h3: 'text-h3' }[s],
         className,
       )}
@@ -113,14 +137,52 @@ export function Eyebrow({ className, ...rest }: ComponentPropsWithoutRef<'p'>) {
 }
 
 export function Text({
+  as: Tag = 'p',
   muted,
+  size = 'body',
+  weight = 'regular',
   className,
   ...rest
-}: ComponentPropsWithoutRef<'p'> & { muted?: boolean }) {
+}: ComponentPropsWithoutRef<'p'> & {
+  as?: 'p' | 'span'
+  muted?: boolean
+  size?: 'body' | 'small'
+  weight?: 'regular' | 'medium'
+}) {
   return (
-    <p
-      className={cx('text-body', muted && 'text-ink-muted', className)}
+    <Tag
+      className={cx(
+        { body: 'text-body', small: 'text-small' }[size],
+        weight === 'medium' && 'font-medium',
+        muted && 'text-ink-muted',
+        className,
+      )}
       {...rest}
+    />
+  )
+}
+
+export function NavLink({ className, ...rest }: ComponentPropsWithoutRef<'a'>) {
+  return (
+    <a
+      className={cx(
+        'text-small text-inherit underline-offset-4 hover:underline',
+        className,
+      )}
+      {...rest}
+    />
+  )
+}
+
+/* The ring mark from the design: a pill with a transparent centre, in currentColor. */
+export function Logomark({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cx(
+        'inline-block size-7 shrink-0 rounded-pill border-6 border-current',
+        className,
+      )}
     />
   )
 }

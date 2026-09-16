@@ -1,30 +1,53 @@
 /* Design tokens. The build agent overwrites this file from the Figma manifest.
-   Naming: semantic first (--color-ink, --color-surface), raw scale second. */
+   Naming: semantic first (--color-ink, --color-surface), raw scale second.
+   Source: design/manifest.json palette (Figma file csnf). */
 @theme {
-  --color-ink: #0d1020;
-  --color-ink-muted: #6d7893;
-  --color-surface: #ffffff;
-  --color-surface-alt: #f4f5f8;
-  --color-accent: #7fd4c1;
-  --color-line: #e3e6ee;
+  /* Raw palette: every colour in the manifest. Reference only from this file. */
+  --color-palette-black: #000000;
+  --color-palette-white: #ffffff;
+  --color-palette-grey-50: #f7f7f7;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Semantic colours */
+  --color-ink: var(--color-palette-black); /* text, header links, footer bg */
+  --color-surface: var(--color-palette-white); /* page bg, text on ink */
+  /* header bar, hero panel */
+  --color-surface-alt: var(--color-palette-grey-50);
+  /* Not in the design (monochrome); derived so existing primitives keep working. */
+  --color-ink-muted: color-mix(in srgb, var(--color-ink) 60%, transparent);
+  --color-accent: var(--color-ink);
+  --color-line: color-mix(in srgb, var(--color-ink) 10%, transparent);
+
+  /* Fonts: Inter is the only family in the design (loaded in __root.tsx). */
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: var(--font-sans);
 
-  --text-display: 3.5rem;
-  --text-display--line-height: 1.05;
+  /* Type scale. display = Inter 72/900 (lh 87px); small = Inter 12 (lh 14.5px). */
+  --text-display: 4.5rem;
+  --text-display--line-height: 1.21;
+  --text-display--font-weight: 900;
   --text-h2: 2.25rem;
   --text-h2--line-height: 1.15;
+  --text-h2--font-weight: 700;
+  --text-h2--letter-spacing: -0.02em;
   --text-h3: 1.5rem;
   --text-h3--line-height: 1.25;
-  --text-body: 1.0625rem;
+  --text-h3--font-weight: 600;
+  --text-body: 1rem;
   --text-body--line-height: 1.6;
-  --text-small: 0.875rem;
+  --text-small: 0.75rem;
+  --text-small--line-height: 1.21;
 
+  /* Radii: 8px panels, pill for the logomark. */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 16px;
+  --radius-pill: 9999px;
 
-  --container-content: 72rem;
-  --spacing-section: 6rem;
+  /* Layout + spacing. Frame is 1440 wide with 24px gutters; footer pads 48px. */
+  --container-content: 90rem;
+  --spacing-gutter: 1.5rem;
+  --spacing-section: 3rem;
+  --spacing-bar: 0.5rem; /* header vertical padding */
+  --spacing-hero: 15rem; /* hero panel min height (240px) */
 }
