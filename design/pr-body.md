@@ -1,0 +1,13 @@
+# Design translation: csnf (Figma `Z6zl7ty638PnjLFGKfOI1M`)
+
+## Block plan
+
+The manifest has 1 route (`/`, frame "Template") with 3 sections, so 3 distinct section types.
+
+| Section type | Instances  | Decision                                                                           | Target                                             | Fields (from named layers)                                                                                                                      | Notes                                                                                                                                              |
+| ------------ | ---------- | ---------------------------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Header       | 1 (`5:11`) | Site chrome, not a block                                                           | `src/lib/SiteHeader.tsx`, rendered in `__root.tsx` | `siteSettings.siteName` ← `wordmark`; `siteSettings.nav[]` ← `Home`, `About`; `siteSettings.logo` (optional, falls back to the `logomark` ring) | `#f7f7f7` bar, 8/24 padding, logo left, nav right                                                                                                  |
+| Hero         | 1 (`5:36`) | **Reuse** `hero` and add an optional `layout` field (`split` default, `panel` new) | `src/blocks/Hero`                                  | `heading` ← `Page Title`; existing `eyebrow`, `body`, `cta`, `image` stay optional                                                              | Near-duplicate of the existing Hero: the new `panel` layout centres the content in a rounded `surface-alt` panel with a 240px min height. No fork. |
+| Footer       | 1 (`5:12`) | Site chrome, not a block                                                           | `src/lib/SiteFooter.tsx`, rendered in `__root.tsx` | `siteSettings.siteName` ← `wordmark`; `siteSettings.logo` (optional); `siteSettings.footerText` (optional, not in the design)                   | Ink background, 48/24 padding, logomark and wordmark stacked in the centre                                                                         |
+
+New primitives in `src/ui`: `Panel` (a rounded tinted surface) and `Logomark` (the ring mark from the design, drawn in CSS). No new block types.
