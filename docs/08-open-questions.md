@@ -15,4 +15,6 @@
 
 ## Still open
 
+- **Figma Starter-plan REST quota.** On 2026-09-16 the free plan returned `429` with `retry-after ≈ 4.5 days` and `x-figma-rate-limit-type: high` after a modest number of file/image calls. This is a plan quota, not a burst limit. Options: (a) Professional plan for the agency's Figma account; (b) an in-house Figma plugin that writes the manifest from inside Figma (plugins aren't REST-limited); (c) cache aggressively and build with `--skip-extract` when the manifest is already committed. Decide before onboarding real clients.
+
 - Exact Claude Code headless flags and the Cloudflare Pages custom-domain endpoints: verify against current docs at implementation time (docs 03, 06).

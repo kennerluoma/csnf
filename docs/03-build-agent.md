@@ -65,7 +65,7 @@ Output `design/manifest.json`:
   "components":[…], "lint":[{"level":"warn","node":"12:99","msg":"section frame not auto-layout"}] }
 ```
 
-Everything downstream reads the manifest. The agent is testable against fixture manifests with no Figma access.
+Everything downstream reads the manifest. The agent is testable against fixture manifests with no Figma access, and `agency build --skip-extract` reuses the committed manifest when Figma is rate-limited (see doc 08).
 
 ## Step 2 · Translate (Claude Code headless)
 
