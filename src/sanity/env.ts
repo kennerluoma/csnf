@@ -1,6 +1,6 @@
 export const projectId = import.meta.env.VITE_SANITY_PROJECT_ID as string
 export const dataset =
-  (import.meta.env.VITE_SANITY_DATASET as string) || 'development'
+  (import.meta.env.VITE_SANITY_DATASET as string) || 'production'
 export const apiVersion = '2026-09-01'
 
 if (!projectId) {

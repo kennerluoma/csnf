@@ -17,7 +17,7 @@ Sanity and GitHub calls above were verified against current docs on 2026-09-16. 
 
 ## Secrets written to each repo
 
-Secrets: `SANITY_PROJECT_ID`, `SANITY_WRITE_TOKEN`, `FIGMA_TOKEN`, `ANTHROPIC_API_KEY`, `CF_API_TOKEN`, `CF_ACCOUNT_ID`. Variable: `SANITY_DATASET=development`.
+Secrets: `SANITY_PROJECT_ID`, `SANITY_WRITE_TOKEN`, `FIGMA_TOKEN`, `ANTHROPIC_API_KEY`, `CF_API_TOKEN`, `CF_ACCOUNT_ID`. Variable: `SANITY_DATASET=production` (single dataset for now).
 
 ## Admin Worker secrets
 

@@ -15,7 +15,7 @@ jobs:
       contents: read
     env:
       VITE_SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
-      VITE_SANITY_DATASET: ${{ vars.SANITY_DATASET || 'development' }}
+      VITE_SANITY_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -37,7 +37,7 @@ jobs:
         run: pnpm build:studio
         env:
           SANITY_STUDIO_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
-          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET || 'development' }}
+          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
 
       - name: Deploy studio
         if: github.ref == 'refs/heads/main'
