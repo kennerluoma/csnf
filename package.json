@@ -18,7 +18,9 @@
     "sanity:typegen": "pnpm --filter studio typegen",
     "dev:studio": "pnpm --filter studio dev",
     "build:studio": "pnpm --filter studio build",
-    "seed": "node --env-file=.env --experimental-strip-types scripts/seed.ts"
+    "seed": "node --env-file=.env --experimental-strip-types scripts/seed.ts",
+    "extract": "node --env-file=.env --experimental-strip-types scripts/extract.ts",
+    "shot": "node --env-file=.env --experimental-strip-types scripts/shot.ts"
   },
   "dependencies": {
     "@portabletext/react": "^8.0.1",
@@ -44,6 +46,7 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9.20.0",
+    "playwright": "^1.63.0",
     "prettier": "^3.8.1",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",

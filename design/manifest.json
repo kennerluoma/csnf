@@ -1,0 +1,377 @@
+{
+  "fileKey": "Z6zl7ty638PnjLFGKfOI1M",
+  "fileName": "csnf",
+  "version": "2399891213791556978",
+  "lastModified": "2026-09-16T18:58:45Z",
+  "extractedAt": "2026-09-16T19:00:37.299Z",
+  "palette": {
+    "colors": [
+      {
+        "hex": "#000000",
+        "uses": 10
+      },
+      {
+        "hex": "#ffffff",
+        "uses": 3
+      },
+      {
+        "hex": "#f7f7f7",
+        "uses": 2
+      }
+    ],
+    "fonts": [
+      {
+        "family": "Inter",
+        "size": 12,
+        "weight": 500,
+        "lineHeight": 14.522727012634277,
+        "uses": 2
+      },
+      {
+        "family": "Inter",
+        "size": 12,
+        "weight": 400,
+        "lineHeight": 14.522727012634277,
+        "uses": 2
+      },
+      {
+        "family": "Inter",
+        "size": 72,
+        "weight": 900,
+        "lineHeight": 87.13636016845703,
+        "uses": 1
+      }
+    ],
+    "radii": [
+      {
+        "value": 9999,
+        "uses": 4
+      },
+      {
+        "value": 8,
+        "uses": 2
+      }
+    ],
+    "spacing": [
+      {
+        "value": 24,
+        "uses": 4
+      },
+      {
+        "value": 48,
+        "uses": 3
+      },
+      {
+        "value": 8,
+        "uses": 2
+      },
+      {
+        "value": 4,
+        "uses": 1
+      },
+      {
+        "value": 10,
+        "uses": 1
+      },
+      {
+        "value": 1275,
+        "uses": 1
+      },
+      {
+        "value": 12,
+        "uses": 1
+      },
+      {
+        "value": 20,
+        "uses": 1
+      }
+    ]
+  },
+  "routes": [
+    {
+      "id": "1:2",
+      "name": "Template",
+      "path": "/",
+      "viewport": "desktop",
+      "width": 1440,
+      "render": "design/renders/template.png",
+      "sections": [
+        {
+          "id": "5:11",
+          "name": "Header",
+          "type": "Header",
+          "size": [1440, 44],
+          "background": "#f7f7f7",
+          "layout": {
+            "direction": "row",
+            "gap": 10,
+            "padding": [8, 24, 8, 24],
+            "align": "center",
+            "justify": "space_between"
+          },
+          "text": {
+            "wordmark": "Name",
+            "text": "Home",
+            "text2": "About"
+          },
+          "tree": {
+            "id": "5:11",
+            "type": "FRAME",
+            "name": "Header",
+            "size": [1440, 44],
+            "fill": "#f7f7f7",
+            "layout": {
+              "direction": "row",
+              "gap": 10,
+              "padding": [8, 24, 8, 24],
+              "align": "center",
+              "justify": "space_between"
+            },
+            "children": [
+              {
+                "id": "5:18",
+                "type": "FRAME",
+                "name": "container",
+                "size": [1392, 28],
+                "layout": {
+                  "direction": "row",
+                  "gap": 1275,
+                  "padding": [0, 0, 0, 0],
+                  "align": "center",
+                  "justify": "space_between"
+                },
+                "children": [
+                  {
+                    "id": "5:25",
+                    "type": "FRAME",
+                    "name": "Logo",
+                    "size": [74, 28],
+                    "layout": {
+                      "direction": "row",
+                      "gap": 12,
+                      "padding": [0, 0, 0, 0],
+                      "align": "center"
+                    },
+                    "children": [
+                      {
+                        "id": "5:14",
+                        "type": "BOOLEAN_OPERATION",
+                        "name": "logomark",
+                        "size": [28, 28],
+                        "fill": "#000000",
+                        "children": [
+                          {
+                            "id": "5:6",
+                            "type": "RECTANGLE",
+                            "name": "outer",
+                            "size": [28, 28],
+                            "fill": "#000000",
+                            "radius": 9999
+                          },
+                          {
+                            "id": "5:13",
+                            "type": "RECTANGLE",
+                            "name": "inner",
+                            "size": [16, 16],
+                            "fill": "#000000",
+                            "radius": 9999
+                          }
+                        ]
+                      },
+                      {
+                        "id": "5:24",
+                        "type": "TEXT",
+                        "name": "wordmark",
+                        "size": [34, 15],
+                        "fill": "#000000",
+                        "text": "Name",
+                        "font": "Inter 12/500"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "5:10",
+                    "type": "FRAME",
+                    "name": "nav",
+                    "size": [89, 15],
+                    "layout": {
+                      "direction": "row",
+                      "gap": 20,
+                      "padding": [0, 0, 0, 0],
+                      "align": "center"
+                    },
+                    "children": [
+                      {
+                        "id": "5:8",
+                        "type": "TEXT",
+                        "name": "Home",
+                        "size": [34, 15],
+                        "fill": "#000000",
+                        "text": "Home",
+                        "font": "Inter 12/400"
+                      },
+                      {
+                        "id": "5:9",
+                        "type": "TEXT",
+                        "name": "About",
+                        "size": [35, 15],
+                        "fill": "#000000",
+                        "text": "About",
+                        "font": "Inter 12/400"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "5:36",
+          "name": "Hero",
+          "type": "Hero",
+          "size": [1392, 240],
+          "background": "#f7f7f7",
+          "text": {
+            "text": "Page Title"
+          },
+          "tree": {
+            "id": "5:36",
+            "type": "GROUP",
+            "name": "Hero",
+            "size": [1392, 240],
+            "radius": 8,
+            "children": [
+              {
+                "id": "5:32",
+                "type": "RECTANGLE",
+                "name": "Hero BG",
+                "size": [1392, 240],
+                "fill": "#f7f7f7",
+                "radius": 8
+              },
+              {
+                "id": "5:35",
+                "type": "TEXT",
+                "name": "Page Title",
+                "size": [359, 87],
+                "fill": "#000000",
+                "text": "Page Title",
+                "font": "Inter 72/900 center"
+              }
+            ]
+          }
+        },
+        {
+          "id": "5:12",
+          "name": "Footer",
+          "type": "Footer",
+          "size": [1440, 143],
+          "background": "#000000",
+          "layout": {
+            "direction": "column",
+            "gap": 48,
+            "padding": [48, 24, 48, 24],
+            "align": "center",
+            "justify": "center"
+          },
+          "text": {
+            "wordmark": "Name"
+          },
+          "tree": {
+            "id": "5:12",
+            "type": "FRAME",
+            "name": "Footer",
+            "size": [1440, 143],
+            "fill": "#000000",
+            "layout": {
+              "direction": "column",
+              "gap": 48,
+              "padding": [48, 24, 48, 24],
+              "align": "center",
+              "justify": "center"
+            },
+            "children": [
+              {
+                "id": "5:26",
+                "type": "FRAME",
+                "name": "Logo",
+                "size": [34, 47],
+                "layout": {
+                  "direction": "column",
+                  "gap": 4,
+                  "padding": [0, 0, 0, 0],
+                  "align": "center",
+                  "justify": "center"
+                },
+                "children": [
+                  {
+                    "id": "5:27",
+                    "type": "BOOLEAN_OPERATION",
+                    "name": "logomark",
+                    "size": [28, 28],
+                    "fill": "#ffffff",
+                    "children": [
+                      {
+                        "id": "5:28",
+                        "type": "RECTANGLE",
+                        "name": "outer",
+                        "size": [28, 28],
+                        "fill": "#000000",
+                        "radius": 9999
+                      },
+                      {
+                        "id": "5:29",
+                        "type": "RECTANGLE",
+                        "name": "inner",
+                        "size": [16, 16],
+                        "fill": "#000000",
+                        "radius": 9999
+                      }
+                    ]
+                  },
+                  {
+                    "id": "5:30",
+                    "type": "TEXT",
+                    "name": "wordmark",
+                    "size": [34, 15],
+                    "fill": "#ffffff",
+                    "text": "Name",
+                    "font": "Inter 12/500 center"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "components": [],
+  "lint": [
+    {
+      "level": "info",
+      "node": "5:8",
+      "name": "Home",
+      "msg": "text layer not named by role; field name will be generic"
+    },
+    {
+      "level": "info",
+      "node": "5:9",
+      "name": "About",
+      "msg": "text layer not named by role; field name will be generic"
+    },
+    {
+      "level": "info",
+      "node": "5:35",
+      "name": "Page Title",
+      "msg": "text layer not named by role; field name will be generic"
+    },
+    {
+      "level": "warn",
+      "node": "5:36",
+      "name": "Hero",
+      "msg": "section is not auto-layout; spacing will be inferred from positions"
+    }
+  ]
+}

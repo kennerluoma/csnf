@@ -29,6 +29,12 @@ This repo is a client site generated from the agency starter: TanStack Start + R
 - Images: always `imageWithAlt`; render with the `Image` primitive (handles Sanity CDN URLs).
 - Document ids: top-level, hyphenated (`page-home`). Never dotted ids; the public read role can't see them.
 
+## Scripts
+
+- `pnpm extract` · Figma → `design/manifest.json` + `design/renders/*.png` (needs `FIGMA_TOKEN`)
+- `pnpm shot [url]` · Playwright screenshots of every route → `design/shots/*.png`
+- `pnpm seed` · write seed documents to Sanity (needs `SANITY_WRITE_TOKEN`)
+
 ## Design translation (what `translate.yml` runs)
 
 Input: `design/manifest.json` (from Figma) and `design/renders/*.png`. Task prompt: `.agency/prompts/translate.md`. Output: tokens, blocks, page documents in Sanity, a branch and a PR. Never push to `main`.

@@ -18,3 +18,4 @@ todos.json
 design/renders/*.png
 design/assets/*
 !design/assets/.gitkeep
+design/shots/
