@@ -33,7 +33,7 @@ export function Container({
 }: ComponentPropsWithoutRef<'div'>) {
   return (
     <div
-      className={cx('mx-auto w-full max-w-content px-6', className)}
+      className={cx('mx-auto w-full max-w-content px-gutter', className)}
       {...rest}
     />
   )
@@ -91,7 +91,7 @@ export function Heading({
   return (
     <Tag
       className={cx(
-        'font-display font-semibold tracking-tight text-balance',
+        'font-display text-balance',
         { display: 'text-display', h2: 'text-h2', h3: 'text-h3' }[s],
         className,
       )}
