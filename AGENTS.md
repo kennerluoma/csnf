@@ -39,6 +39,10 @@ This repo is a client site generated from the agency starter: TanStack Start + R
 
 Input: `design/manifest.json` (from Figma) and `design/renders/*.png`. Task prompt: `.agency/prompts/translate.md`. Output: tokens, blocks, page documents in Sanity, a branch and a PR. Never push to `main`.
 
+## Rebuilds
+
+`design/mapping.json` maps Figma section ids to block files, page documents and block keys. `design/manifest.prev.json` is the manifest from the previous run. A rebuild changes only what changed between the two manifests; everything else, including hand edits on `main`, stays untouched. Client edits made in the studio win over re-seeded content.
+
 ## Quality bar
 
 `pnpm typecheck && pnpm lint && pnpm build` must pass before a commit. Prettier formats everything (`pnpm format`).
