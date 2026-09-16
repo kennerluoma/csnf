@@ -48,13 +48,28 @@ const agency = JSON.parse(await readFile('agency.json', 'utf8')) as {
   figmaFileKey: string
 }
 const fileKey = agency.figmaFileKey
-const api = async (path: string) => {
-  const res = await fetch(`https://api.figma.com/v1${path}`, {
-    headers: { 'X-Figma-Token': token },
-  })
-  if (!res.ok)
-    throw new Error(`Figma ${path} → ${res.status} ${await res.text()}`)
-  return res.json()
+const api = async (path: string): Promise<any> => {
+  // Figma rate-limits bursts (429). Retry with backoff, honouring Retry-After, for up to ~3 minutes.
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`https://api.figma.com/v1${path}`, {
+      headers: { 'X-Figma-Token': token },
+    })
+    if (res.ok) return res.json()
+    const body = await res.text()
+    if ((res.status === 429 || res.status >= 500) && attempt < 6) {
+      const retryAfter = Number(res.headers.get('retry-after')) || 0
+      const wait = Math.max(
+        retryAfter * 1000,
+        Math.min(60_000, 5_000 * 2 ** attempt),
+      )
+      console.error(
+        `Figma ${path} → ${res.status}; retrying in ${Math.round(wait / 1000)}s`,
+      )
+      await new Promise((r) => setTimeout(r, wait))
+      continue
+    }
+    throw new Error(`Figma ${path} → ${res.status} ${body}`)
+  }
 }
 
 const hex = (c: { r: number; g: number; b: number }) =>
