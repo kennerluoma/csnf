@@ -27,6 +27,7 @@ This repo is a client site generated from the agency starter: TanStack Start + R
 
 - Fetch via `createServerFn` in `src/lib/page.ts` (do not name files `*.server.ts`; Start blocks importing those from routes), queries in `src/sanity/queries.ts`. Blocks are pure presentational components; they never fetch.
 - Images: always `imageWithAlt`; render with the `Image` primitive (handles Sanity CDN URLs).
+- Document ids: top-level, hyphenated (`page-home`). Never dotted ids; the public read role can't see them.
 
 ## Design translation (what `translate.yml` runs)
 

@@ -1,6 +1,8 @@
 /* Seed a minimal home page + site settings. Idempotent: deterministic _ids, createOrReplace.
+   Ids must be top-level (no dots): Sanity's public read role hides namespaced ids like `page.home`.
    Run: pnpm seed   (needs VITE_SANITY_PROJECT_ID, VITE_SANITY_DATASET, SANITY_WRITE_TOKEN in .env) */
 import { createClient } from '@sanity/client'
+import type { IdentifiedSanityDocumentStub } from '@sanity/client'
 
 const projectId = process.env.VITE_SANITY_PROJECT_ID
 const dataset = process.env.VITE_SANITY_DATASET || 'production'
@@ -16,7 +18,7 @@ const client = createClient({
   useCdn: false,
 })
 
-const docs = [
+const docs: Array<IdentifiedSanityDocumentStub> = [
   {
     _id: 'siteSettings',
     _type: 'siteSettings',
@@ -25,7 +27,7 @@ const docs = [
     footerText: '© CSNF',
   },
   {
-    _id: 'page.home',
+    _id: 'page-home',
     _type: 'page',
     title: 'Home',
     slug: { _type: 'slug', current: 'home' },
