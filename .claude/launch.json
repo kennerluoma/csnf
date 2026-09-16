@@ -1,7 +1,17 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "dev", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev"], "port": 3000 },
-    { "name": "studio", "runtimeExecutable": "pnpm", "runtimeArgs": ["dev:studio"], "port": 3333 }
+    {
+      "name": "dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"],
+      "port": 3000
+    },
+    {
+      "name": "studio",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev:studio"],
+      "port": 3333
+    }
   ]
 }
