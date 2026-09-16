@@ -108,12 +108,15 @@ const footer = sections.find((s) => s.type === 'Footer')
 const siteName = header?.text?.wordmark ?? footer?.text?.wordmark
 const nav = Object.entries(header?.text ?? {})
   .filter(([field]) => field !== 'wordmark')
-  .map(([, label]) => ({
-    _key: label.toLowerCase().replace(/\W+/g, '-'),
-    _type: 'link',
-    label,
-    href: label.toLowerCase() === 'home' ? '/' : `/${slugFor(label)}`,
-  }))
+  .map(([, label]) => {
+    const slug = label.toLowerCase().replace(/\W+/g, '-')
+    return {
+      _key: slug,
+      _type: 'link',
+      label,
+      href: slug === 'home' ? '/' : `/${slug}`,
+    }
+  })
 
 const tx = docs.reduce((t, d) => t.createOrReplace(d), client.transaction())
 tx.createIfNotExists({ _id: 'siteSettings', _type: 'siteSettings' })
