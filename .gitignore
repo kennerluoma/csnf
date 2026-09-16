@@ -19,3 +19,5 @@ design/renders/*.png
 design/assets/*
 !design/assets/.gitkeep
 design/shots/
+design/agent-report.json
+design/agent-stderr.log
