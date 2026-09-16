@@ -112,14 +112,14 @@ const imageRefs = new Map<
 >()
 
 function solidFill(n: FigmaNode) {
-  const f = n.fills?.find(
-    (f) => f.type === 'SOLID' && f.visible !== false && f.color,
+  const fill = n.fills?.find(
+    (x) => x.type === 'SOLID' && x.visible !== false && x.color,
   )
-  return f?.color ? hex(f.color) : undefined
+  return fill?.color ? hex(fill.color) : undefined
 }
 function collectPalette(
   n: FigmaNode,
-  styleNames: Record<string, { name: string }>,
+  styleNames: Record<string, { name: string } | undefined>,
 ) {
   if (!visible(n)) return
   const c = solidFill(n)
@@ -161,7 +161,7 @@ function collectPalette(
   ]) {
     if (v) spacing.set(v, (spacing.get(v) ?? 0) + 1)
   }
-  n.children?.forEach((c) => collectPalette(c, styleNames))
+  n.children?.forEach((child) => collectPalette(child, styleNames))
 }
 
 function layoutOf(n: FigmaNode) {
@@ -232,7 +232,7 @@ function collectText(n: FigmaNode, acc: Record<string, string>) {
     let key = role(n.name)
     if (!key || key === role(n.characters)) key = 'text'
     let k = key
-    for (let i = 2; acc[k] !== undefined; i++) k = `${key}${i}`
+    for (let i = 2; k in acc; i++) k = `${key}${i}`
     acc[k] = n.characters
     if (key === 'text')
       lint.push({
