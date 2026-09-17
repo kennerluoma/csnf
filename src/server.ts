@@ -50,7 +50,13 @@ async function fetch(
   }
   const cache = (globalThis as unknown as { caches?: { default: Cache } })
     .caches?.default
-  if (!cache || request.method !== 'GET') return start(request)
+  // Router data requests (client-side navigation) carry their own payload in the query; never cache them.
+  if (
+    !cache ||
+    request.method !== 'GET' ||
+    url.pathname.startsWith('/_serverFn')
+  )
+    return start(request)
   const key = new Request(request.url, { method: 'GET' })
   const hit = await cache.match(key)
   if (hit) {

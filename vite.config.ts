@@ -17,10 +17,12 @@ const config = defineConfig({
       // Every page reachable from `/` is rendered to static HTML at build time and served as an asset
       // (no Worker, no Sanity call). Content edits redeploy via the Sanity webhook (deploy.yml).
       // Routes with search params, /api and feeds stay server-rendered.
+      // Query-string links (filters, months) are ISR territory: crawling them would render every
+      // combination over the same index.html and exhaust memory.
       prerender: {
         enabled: true,
         crawlLinks: true,
-        filter: (p) => !/^\/(api|ics)\//.test(p.path),
+        filter: (p) => !p.path.includes('?') && !/^\/(api|ics)\//.test(p.path),
       },
     }),
     viteReact(),
