@@ -1,0 +1,104 @@
+name: Translate design
+# The Actions runner: the same steps as `agency build` on a laptop, run unattended on GitHub.
+# Needs repo secrets ANTHROPIC_API_KEY (pay-per-use; the local runner uses an operator's Claude login
+# instead), SANITY_PROJECT_ID, SANITY_WRITE_TOKEN, FIGMA_TOKEN. Dispatch with `agency build <slug> --runner actions`.
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Model for the implementation pass
+        default: opus
+      fidelity:
+        description: normalised | exact
+        default: normalised
+      skip_extract:
+        description: Reuse the committed design/manifest.json (Figma quota, or plugin export)
+        default: 'false'
+      single_pass:
+        description: Skip the planning pass
+        default: 'false'
+
+concurrency:
+  group: translate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      VITE_SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+      VITE_SANITY_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
+      SANITY_WRITE_TOKEN: ${{ secrets.SANITY_WRITE_TOKEN }}
+      FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      AGENCY_FIDELITY: ${{ inputs.fidelity }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Check secrets
+        run: |
+          test -n "$ANTHROPIC_API_KEY" || { echo "ANTHROPIC_API_KEY secret is not set"; exit 1; }
+          test -n "$SANITY_WRITE_TOKEN" || { echo "SANITY_WRITE_TOKEN secret is not set"; exit 1; }
+      - run: npm i -g @anthropic-ai/claude-code
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - name: Block inventory
+        run: pnpm inventory
+
+      - name: Extract design
+        if: inputs.skip_extract != 'true'
+        run: |
+          if [ -f design/mapping.json ] && [ -f design/manifest.json ]; then cp design/manifest.json design/manifest.prev.json; fi
+          pnpm extract
+
+      - name: Branch
+        id: branch
+        run: |
+          b="design/$(date -u +%Y%m%d-%H%M)"
+          git checkout -b "$b"
+          echo "branch=$b" >> "$GITHUB_OUTPUT"
+
+      - name: Dev server (for screenshots)
+        run: (pnpm dev > dev.log 2>&1 &) && sleep 8
+
+      - name: Plan (cheap pass)
+        if: inputs.single_pass != 'true'
+        run: |
+          claude -p "$(cat .agency/prompts/plan.md)" --model sonnet --permission-mode acceptEdits \
+            --allowedTools "Read,Glob,Grep,Write,Bash(ls *),Bash(cat *)" --max-turns 40 --output-format json > plan-out.json || true
+          node -e 'const j=JSON.parse(require("fs").readFileSync("plan-out.json","utf8"));console.log(`plan: ${j.num_turns} turns $${(j.total_cost_usd||0).toFixed(2)}`)' || true
+
+      - name: Translate
+        run: |
+          claude -p "$(cat .agency/prompts/translate.md)" --model "${{ inputs.model }}" --permission-mode acceptEdits \
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(pnpm *),Bash(node *),Bash(git add *),Bash(git commit *),Bash(git status*),Bash(git diff*),Bash(git log*),Bash(ls *),Bash(cat *),Bash(mkdir *)" \
+            --max-turns 200 --output-format json > agent-out.json
+          node -e '
+            const j = JSON.parse(require("fs").readFileSync("agent-out.json","utf8"));
+            console.log(j.result || ""); console.log(`agent: ${j.num_turns} turns $${(j.total_cost_usd||0).toFixed(2)}`);
+            require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n**Agent:** ${j.num_turns} turns, $${(j.total_cost_usd||0).toFixed(2)}\n`);
+            if (j.is_error) process.exit(1);
+          '
+          pnpm inventory || true
+
+      - name: Push + PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -f plan-out.json agent-out.json dev.log
+          git config user.name agency
+          git config user.email agency@users.noreply.github.com
+          git add -A
+          git commit -q -m "design: agent run artifacts" --allow-empty
+          git push -u origin "${{ steps.branch.outputs.branch }}"
+          [ -f design/pr-body.md ] || echo "Agent run (Actions)" > design/pr-body.md
+          gh pr create --base "${{ github.ref_name }}" --head "${{ steps.branch.outputs.branch }}" \
+            --title "design: translate Figma (${{ steps.branch.outputs.branch }})" --body-file design/pr-body.md
