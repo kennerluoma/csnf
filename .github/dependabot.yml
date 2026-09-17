@@ -1,0 +1,31 @@
+# Stay current without installing fresh releases: one grouped PR a week, nothing younger than
+# 7 days (matches minimumReleaseAge in pnpm-workspace.yaml). Security updates ignore the cooldown
+# and arrive on their own as soon as an advisory is published. CI (lint, types, build, budget,
+# audit) decides whether an update is safe to merge.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    cooldown: { default-days: 7 }
+    open-pull-requests-limit: 3
+    groups:
+      framework:
+        {
+          patterns:
+            [
+              '@tanstack/*',
+              'react',
+              'react-dom',
+              'vite',
+              '@vitejs/*',
+              '@cloudflare/*',
+              'wrangler',
+            ],
+        }
+      sanity: { patterns: ['sanity', '@sanity/*', '@portabletext/*'] }
+      tooling: { patterns: ['*'], update-types: [minor, patch] }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+    cooldown: { default-days: 7 }

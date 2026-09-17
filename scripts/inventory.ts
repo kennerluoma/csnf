@@ -103,7 +103,7 @@ const next = md.includes(START)
   : `${md.trimEnd()}\n\n## Block inventory\n\n${table}\n`
 if (next !== md) {
   await writeFile(path, next)
-  execFileSync('pnpm', ['exec', 'prettier', '--write', path], {
+  execFileSync('pnpm', ['exec', 'oxfmt', path], {
     stdio: 'ignore',
   })
   console.log(

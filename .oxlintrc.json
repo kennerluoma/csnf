@@ -1,0 +1,31 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "jsx-a11y", "import", "unicorn", "oxc"],
+  "jsPlugins": [
+    "eslint-plugin-react-you-might-not-need-an-effect",
+    "./tools/lint-plugin.js"
+  ],
+  "categories": { "correctness": "error" },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "react/react-in-jsx-scope": "off",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/no-floating-promises": "error",
+    "agency/class-names": "error",
+    "react-you-might-not-need-an-effect/no-derived-state": "error",
+    "react-you-might-not-need-an-effect/no-chain-state-updates": "error",
+    "react-you-might-not-need-an-effect/no-event-handler": "error",
+    "react-you-might-not-need-an-effect/no-adjust-state-on-prop-change": "error",
+    "react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change": "error",
+    "react-you-might-not-need-an-effect/no-pass-live-state-to-parent": "error",
+    "react-you-might-not-need-an-effect/no-pass-data-to-parent": "error",
+    "react-you-might-not-need-an-effect/no-initialize-state": "error"
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "studio/.sanity/**",
+    "studio/dist/**",
+    "src/routeTree.gen.ts"
+  ]
+}

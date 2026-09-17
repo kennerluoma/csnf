@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import type { ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
 
-/* The only way to build a conditional className: clsx for the conditions, tailwind-merge so a
-   caller's `className` wins over a primitive's defaults. Never concatenate class strings. */
-export const cn = (...inputs: Array<ClassValue>) => twMerge(clsx(inputs))
+/* The only way to build a conditional className. Never concatenate class strings (lint fails on
+   template literals and + in className). Primitives own their styling, so there is no class
+   conflict to merge; a variant prop is the way to change one. */
+export const cn = (...inputs: Array<ClassValue>) => clsx(inputs)

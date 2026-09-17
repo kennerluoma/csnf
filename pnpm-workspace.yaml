@@ -6,3 +6,8 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   workerd: true
+
+# Supply chain: never install a version published less than 7 days ago (most malicious releases are
+# pulled within days). Security fixes that can't wait: add the package to minimumReleaseAgeExclude
+# for that one update, then remove it.
+minimumReleaseAge: 10080
