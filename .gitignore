@@ -21,3 +21,9 @@ design/assets/*
 design/shots/
 design/agent-report.json
 design/agent-stderr.log
+
+# agency scratch (triage / intake passes)
+.agency/issues.json
+.agency/triage.json
+.agency/drafts.json
+.agency/intake.md
