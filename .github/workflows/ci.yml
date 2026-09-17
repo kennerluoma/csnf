@@ -11,6 +11,7 @@ jobs:
       # Prerendering reads the (public) dataset at build time. The id normally comes from the
       # committed .env.production; the secret, when present, wins (Dependabot PRs get no secrets).
       SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+      VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
