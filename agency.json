@@ -5,5 +5,6 @@
   "sanityProjectId": "p82tgysk",
   "cloudflareAccountId": "864d98afbcc1a30b2ce1ee5569ab3d9e",
   "workerName": "csnf",
-  "sanityDataset": "production"
+  "sanityDataset": "production",
+  "fidelity": "normalised"
 }

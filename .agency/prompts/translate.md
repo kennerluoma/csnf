@@ -15,6 +15,11 @@ Do these in order. Commit after each numbered step with a message starting `desi
 5. Verify. Run `pnpm typecheck && pnpm lint && pnpm build`. A dev server is already running at http://localhost:3000 (if not, start one with `pnpm dev` in the background). Run `pnpm shot` to screenshot every route into design/shots/, then Read each design/shots/<route>.png next to its design/renders/<route>.png and compare. Fix obvious differences (spacing, order, alignment, sizes, colours). Stop after 3 passes per route. The site reads Sanity through its CDN, so after writing documents wait ~20s (or set useCdn: false locally) before screenshotting.
 6. Report. Finish design/pr-body.md: the plan table, per-route notes on what differs from the render and why, lint warnings, and anything you could not map.
 
+Fidelity (agency.json → `fidelity`, default "normalised")
+
+- normalised: the manifest's `normalisation.snapped` lists values the extractor rounded (spacing to a 4px scale, type sizes to a small scale, near-duplicate colours merged). Treat two sections as the same block when they differ only in snapped values, in text, or in how many repeated children they have; add a variant prop only for structural differences (different children, different layout direction). A screenshot difference inside the normaliser's tolerance is not a defect: do not add overrides to chase it. Keep to at most 6 type styles and one spacing scale.
+- exact: nothing was snapped. Match values as given; per-block token overrides are allowed. Expect more blocks.
+
 Rules
 
 - Never modify main. Work on the current branch only.

@@ -19,6 +19,7 @@ A per-project setting, `fidelity: normalised | exact`, default **normalised**. S
 ### `normalised` (default)
 
 **Extractor**: snaps values before the agent sees them, and records what it snapped.
+
 - Spacing and sizes → nearest of a 4px scale (4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128). Anything within 15% of a scale step snaps; larger gaps are kept and flagged.
 - Font sizes → a type scale derived from the palette: cluster sizes that are within 10% of each other, keep the most-used value per cluster (47/48/50 → 48). Weights snap to 400/500/600/700.
 - Letter-spacing → three buckets: tight (≤ -0.01em), normal, wide (≥ 0.04em). Line-height → 1.0/1.1/1.25/1.4/1.6.
@@ -27,6 +28,7 @@ A per-project setting, `fidelity: normalised | exact`, default **normalised**. S
 - The manifest gets `normalisation: { rules, snapped: [{node, prop, from, to}] }` so the PR body can list what was rounded.
 
 **Prompt**:
+
 - "Treat two sections as the same block when they differ only in values the normaliser snapped, in text, or in the count of repeated children. Add a variant prop only when the difference is structural (different children, different layout direction)."
 - "The visual loop compares against the render, but a difference that is within the normaliser's tolerance is not a defect. Do not add overrides to chase it."
 - "Write at most N type styles (default 6) and one spacing scale. Everything must be expressed with them."

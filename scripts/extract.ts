@@ -205,8 +205,8 @@ function summarize(n: FigmaNode, depth: number): unknown {
     name: n.name,
     size: box ? [Math.round(box.width), Math.round(box.height)] : undefined,
     fill: solidFill(n),
-    radius: n.cornerRadius ?? n.rectangleCornerRadii,
-    layout: layoutOf(n),
+    radius: snapRadius(n.id, n.cornerRadius ?? n.rectangleCornerRadii),
+    layout: snapLayout(n.id, layoutOf(n)),
   }
   if (n.type === 'TEXT') {
     const s = n.style as
@@ -258,6 +258,109 @@ function collectText(n: FigmaNode, acc: Record<string, string>) {
       })
   }
   n.children?.forEach((c) => collectText(c, acc))
+}
+
+// ---- normaliser (fidelity: normalised) ----
+const snapped: Array<{ node: string; prop: string; from: number; to: number }> =
+  []
+const SPACE = [0, 2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128, 160]
+const RADII = [0, 2, 4, 8, 12, 16, 24, 999]
+const snapTo = (v: number, scale: Array<number>, tol = 0.15) => {
+  const best = scale.reduce((a, b) =>
+    Math.abs(b - v) < Math.abs(a - v) ? b : a,
+  )
+  return Math.abs(best - v) <= Math.max(2, v * tol) ? best : v
+}
+function snapLayout(
+  node: string,
+  l?: { gap: number; padding: [number, number, number, number] },
+) {
+  if (!l || fidelity === 'exact') return l
+  const gap = snapTo(l.gap, SPACE)
+  if (gap !== l.gap) snapped.push({ node, prop: 'gap', from: l.gap, to: gap })
+  const padding = l.padding.map((p, i) => {
+    const t = snapTo(p, SPACE)
+    if (t !== p) snapped.push({ node, prop: `padding[${i}]`, from: p, to: t })
+    return t
+  }) as [number, number, number, number]
+  return { ...l, gap, padding }
+}
+function snapRadius(node: string, r?: number | Array<number>) {
+  if (r === undefined || fidelity === 'exact' || Array.isArray(r)) return r
+  const t = snapTo(r, RADII)
+  if (t !== r) snapped.push({ node, prop: 'radius', from: r, to: t })
+  return t
+}
+/* Type scale: cluster sizes within 10%, keep the most-used size per cluster. */
+function typeScale(
+  entries: Array<{
+    family: string
+    size: number
+    weight: number
+    uses: number
+  }>,
+) {
+  if (fidelity === 'exact') return entries
+  const sizes = [...new Set(entries.map((e) => e.size))].sort((a, b) => a - b)
+  const map = new Map<number, number>()
+  let cluster: Array<number> = []
+  const flush = () => {
+    if (!cluster.length) return
+    const keep = cluster.reduce((a, b) =>
+      entries.filter((e) => e.size === b).reduce((n, e) => n + e.uses, 0) >
+      entries.filter((e) => e.size === a).reduce((n, e) => n + e.uses, 0)
+        ? b
+        : a,
+    )
+    for (const c of cluster) map.set(c, keep)
+    cluster = []
+  }
+  for (const sz of sizes) {
+    if (cluster.length && sz > cluster[0] * 1.1) flush()
+    cluster.push(sz)
+  }
+  flush()
+  const weightOf = (w: number) =>
+    w >= 800 ? 900 : w >= 650 ? 700 : w >= 550 ? 600 : w >= 450 ? 500 : 400
+  const merged = new Map<
+    string,
+    { family: string; size: number; weight: number; uses: number }
+  >()
+  for (const e of entries) {
+    const size = map.get(e.size) ?? e.size
+    const weight = weightOf(e.weight)
+    if (size !== e.size || weight !== e.weight)
+      snapped.push({
+        node: 'palette',
+        prop: `font ${e.family} ${e.size}/${e.weight}`,
+        from: e.size,
+        to: size,
+      })
+    const k = `${e.family}/${size}/${weight}`
+    const cur = merged.get(k) ?? { family: e.family, size, weight, uses: 0 }
+    cur.uses += e.uses
+    merged.set(k, cur)
+  }
+  return [...merged.values()]
+}
+/* Colours: merge near-duplicates (simple RGB distance) into the most-used member. */
+function mergeColours(
+  entries: Array<{ hex: string; uses: number; styleName?: string }>,
+) {
+  if (fidelity === 'exact') return entries
+  const rgb = (h: string) =>
+    [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
+  const dist = (a: string, b: string) =>
+    Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]))
+  const out: Array<{ hex: string; uses: number; styleName?: string }> = []
+  for (const e of [...entries].sort((a, b) => b.uses - a.uses)) {
+    const near = out.find((o) => dist(o.hex, e.hex) < 12)
+    if (near) {
+      near.uses += e.uses
+      snapped.push({ node: 'palette', prop: `colour ${e.hex}`, from: 0, to: 0 })
+    } else out.push({ ...e })
+  }
+  return out
 }
 
 // ---- main ----
@@ -322,7 +425,7 @@ for (const page of file.document.children ?? []) {
             (s.children ?? []).find((c) => /bg|background/i.test(c.name)) ??
               ({} as FigmaNode),
           ),
-        layout: layoutOf(s),
+        layout: snapLayout(s.id, layoutOf(s)),
         text,
         tree: summarize(s, 4),
       }
@@ -378,8 +481,8 @@ const manifest = {
   lastModified: file.lastModified,
   extractedAt: new Date().toISOString(),
   palette: {
-    colors: [...colors.values()].sort((a, b) => b.uses - a.uses),
-    fonts: [...fonts.values()].sort((a, b) => b.uses - a.uses),
+    colors: mergeColours([...colors.values()]).sort((a, b) => b.uses - a.uses),
+    fonts: typeScale([...fonts.values()]).sort((a, b) => b.uses - a.uses),
     radii: [...radii.entries()]
       .map(([value, uses]) => ({ value, uses }))
       .sort((a, b) => b.uses - a.uses),
@@ -388,6 +491,19 @@ const manifest = {
       .sort((a, b) => b.uses - a.uses),
   },
   routes,
+  fidelity,
+  normalisation: {
+    rules:
+      fidelity === 'normalised'
+        ? [
+            'spacing → 4px scale (±15%)',
+            'radius → 0/2/4/8/12/16/24/999',
+            'type sizes clustered within 10%, weights → 400/500/600/700/900',
+            'colours within RGB distance 12 merged',
+          ]
+        : [],
+    snapped,
+  },
   components: Object.entries(file.components).map(([id, c]) => ({
     id,
     name: c.name,

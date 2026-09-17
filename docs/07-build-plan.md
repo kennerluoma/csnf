@@ -17,6 +17,7 @@ Ordered by risk. Prove the build agent on one design before wrapping it in an ap
 - **Exit:** two designs → two PRs with previews, zero local steps.
 
 ## Phase 2 · The app: projects + provisioning + build button — MOSTLY DONE 2026-09-16
+
 - Done: provisioner (Sanity, GitHub, secrets, first deploy), local build runner, Tauri app with projects, new project (Figma picker), project screen (links, domain, previews + merge, checklist, notes, build history), job records. Worker API + D1 deployed 2026-09-16 (agency-api.<sub>.workers.dev): projects/jobs mirrored from the CLI, GitHub webhooks registered on new repos. Desktop app rebuilt to the design handoff (sidebar, activity drawer, phase-aware project screen).
 
 - Worker: Hono, D1 schema (doc 02), Workflows for `provision` and `build`, GitHub webhook, Access in front.
@@ -29,6 +30,7 @@ Ordered by risk. Prove the build agent on one design before wrapping it in an ap
 - **Exit:** a test domain on our zone goes pending → active from the dashboard; deployments list matches Cloudflare.
 
 ## Phase 4 · Rebuild quality — DONE 2026-09-16 (first pass)
+
 - Rebuild test on agency-test-2 with fixtures/studio-site/manifest.v2.json (hero copy change, LogoStrip added, CtaBanner removed): PR #5 in 4.4 min touched only the new block, tokens (+1 spacing), mapping.json and the page writer; About/Contact untouched. The agent rewrote `scripts/pages.ts` to be merge-aware (only overwrites fields whose live value equals the previous seed; studio edits kept; `ifRevisionId`; `--dry-run`).
 
 - `mapping.json`, manifest diff, touch-only-changed-nodes, seed-content merge rules.
