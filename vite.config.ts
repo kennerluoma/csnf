@@ -42,6 +42,12 @@ function compilerCheck(): Plugin {
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  // Once stale-while-revalidate actually serves a cached response (src/server.ts), an entry can
+  // outlive its own deploy by up to the swr window — the cache key must change on every deploy,
+  // or day-old HTML would reference hashed /assets/* files a newer deploy already removed.
+  define: {
+    __BUILD_ID__: JSON.stringify(process.env.GITHUB_SHA ?? String(Date.now())),
+  },
   plugins: [
     devtools(),
     cloudflare({ viteEnvironment: { name: 'ssr' } }),

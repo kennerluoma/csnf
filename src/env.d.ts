@@ -18,3 +18,7 @@ interface CacheStorage {
 
 /* Loader results gathered by src/lib/staticData.ts under the local preview server. */
 declare var __staticData: Map<string, unknown> | undefined
+
+/* Vite `define` in vite.config.ts: the commit sha (GITHUB_SHA in CI) or a build timestamp. Used
+   to key the ISR cache per deploy, not per URL alone. */
+declare const __BUILD_ID__: string
