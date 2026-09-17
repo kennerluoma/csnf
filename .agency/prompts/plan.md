@@ -15,6 +15,6 @@ design/plan.md contains:
 2. A "Tokens" list: semantic names for every palette colour, the font families, the type scale (max 6 styles), radii and section spacing, each with the manifest value it comes from.
 3. A "Pages" list: every route → page slug → ordered block keys; plus any nav targets that need an empty page document.
 4. "Rebuild" (only when design/manifest.prev.json exists): the sections whose content, layout or tree changed, were added, or were removed, from diffing the two manifests. Sections not listed will not be touched.
-5. "Open questions": anything ambiguous in the design (placeholder copy, unnamed layers, lint warnings) the implementer should flag in the PR.
+5. "Open questions": anything ambiguous in the design (placeholder copy, unnamed layers, lint warnings) the implementer should flag in the PR. Always include: fonts that are Trial or commercial, the mobile nav form (wrap or overlay), and which design images have no caption to title or pair them from.
 
 Keep it under 200 lines. Be concrete: field names, option values, file paths.
