@@ -8,6 +8,11 @@ name: Deploy
 on:
   push:
   workflow_dispatch:
+  # exhibitionList/eventCalendar bake "current"/"upcoming"/today's cell into prerendered HTML and
+  # static-data at build time; nothing else invalidates them, so a site with no edits for a few
+  # weeks would keep showing a finished exhibition as current. Rebuilding daily keeps them fresh.
+  schedule:
+    - cron: '5 0 * * *'
 
 concurrency:
   group: deploy-${{ github.ref }}
