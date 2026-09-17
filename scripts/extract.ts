@@ -621,7 +621,7 @@ type FigmaFile = {
 let figImport: FigImport | undefined
 if (fromFig) {
   figImport = figToRest(fromFig, { page: pageArg })
-  const main = pageArg ?? figImport.pages.find((p) => /^final$/i.test(p.trim()))
+  const main = pageArg ?? figImport.pages.find((p) => /^finals?$/i.test(p.trim()))
   // mobile pages ride along: their frames become the mobile viewport of the same routes
   const mobile = figImport.pages.filter((p) => /mobile/i.test(p) && p !== main)
   const chosen = main ? [main, ...mobile] : undefined
