@@ -18,7 +18,8 @@ todos.json
 # Committed so builds work where secrets are withheld (Dependabot PRs, forks). Never put a token here.
 !.env.production
 .wrangler/
-design/renders/*.png
+# Renders are committed: `pnpm visual` compares the built pages against them in CI, and CI
+# only ever sees what the repo carries. They are ~50-200 KB each and change with the design.
 design/assets/*
 !design/assets/.gitkeep
 design/shots/
