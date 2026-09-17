@@ -5,7 +5,7 @@ Decided 2026-09-16. Two or three operators, each on their own Claude Code login.
 ## Why desktop
 
 - **Local runner.** The app spawns `claude -p` on the operator's Mac with their own subscription. No shared API key, no per-token bill, faster iteration, Playwright on local hardware.
-- **Local dev loop.** Clone the client repo, run `pnpm dev` and `pnpm dev:studio`, open the editor, open Figma. A website can't touch the filesystem.
+- **Local dev loop.** Clone the client repo, run `pnpm dev` and `pnpm dev:admin`, open the editor, open Figma. A website can't touch the filesystem.
 - **Secrets stay local.** Figma token, Cloudflare token, GitHub token in the macOS Keychain via Tauri's stronghold/keyring plugin, never in a database.
 
 ## What stays in the cloud
@@ -29,8 +29,8 @@ agency-platform/             # new repo
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `clone(project)`      | `git clone` into `~/agency/<slug>`; records the path locally                                                                                                                                                                                       |
 | `runLocal(job)`       | runs the job's steps as child processes: `pnpm install`, `pnpm extract`, `git checkout -b design/<stamp>`, `claude -p … --model opus`, `pnpm shot`, `git push`, `gh pr create`; streams stdout to the job's step log; posts step status to the API |
-| `dev(project)`        | starts `pnpm dev` / `pnpm dev:studio`, shows the ports, opens the browser                                                                                                                                                                          |
-| `open(project, what)` | editor, Figma, repo, preview, studio                                                                                                                                                                                                               |
+| `dev(project)`        | starts `pnpm dev` / `pnpm dev:admin`, shows the ports, opens the browser                                                                                                                                                                           |
+| `open(project, what)` | editor, Figma, repo, preview, admin                                                                                                                                                                                                                |
 | `secrets`             | read/write Keychain entries; nothing leaves the machine except in request headers                                                                                                                                                                  |
 
 Everything else (list projects, create project, provision, add domain, view deployments) is a plain API call and identical in the web build.

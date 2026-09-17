@@ -1,4 +1,4 @@
-/* Block schemas + GROQ projections only. No React here: the studio imports this file.
+/* Block schemas + GROQ projections only. No React here: the admin imports this file.
    The build agent appends here AND in registry.ts. Keep entries alphabetical by schema name.
    `pnpm inventory` regenerates the block table in AGENTS.md from this list. */
 import type { SchemaTypeDefinition } from '@sanity/types'

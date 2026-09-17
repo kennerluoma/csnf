@@ -20,7 +20,7 @@ All indexes are blocks too (`artworkGrid`, `exhibitionList`, `eventCalendar`, `p
 
 ## Forms
 
-- **Contact form**: a `contactForm` block posting to a Worker route in the same site (`/api/contact`) that emails via Resend or Cloudflare Email Routing and stores the submission in Sanity (`submission` docs, hidden from the client's studio view). Spam: Turnstile.
+- **Contact form**: a `contactForm` block posting to a Worker route in the same site (`/api/contact`) that emails via Resend or Cloudflare Email Routing and stores the submission in Sanity (`submission` docs, hidden from the client's admin view). Spam: Turnstile.
 - **Newsletter signup**: a `newsletterSignup` block that posts to the provider the client already uses. Supported by config in `siteSettings.newsletter`: Mailchimp (form action URL), Buttondown, ConvertKit, Klaviyo. No provider integration on our side beyond the action URL and the field names; it's a form.
 
 ## Rendering conventions
@@ -29,7 +29,7 @@ All indexes are blocks too (`artworkGrid`, `exhibitionList`, `eventCalendar`, `p
 - Dates and calendars come from one helper (`src/lib/dates.ts`) and one `Calendar` primitive so event and exhibition views agree.
 - Filters are URL search params (`?artist=…&year=…`), server-rendered, so links are shareable.
 
-## Studio
+## Admin
 
 - Desk structure grouped: Content (pages, news), Collection (artists, artworks), Programme (exhibitions, events), Site (settings, submissions).
 - Preview URLs per type; Presentation tool wired for click-to-edit.

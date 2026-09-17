@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
-  "name": "csnf-studio",
+  "name": "csnf-admin",
   "compatibility_date": "2025-09-02",
   "assets": {
     "directory": "./dist",

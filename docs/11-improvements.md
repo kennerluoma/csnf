@@ -24,7 +24,7 @@ Grouped by what they improve. Each line is a self-contained task. ✅ = done (20
 12. ✅ **Preview cleanup** (`agency previews prune`, also after `agency merge`; Cloudflare has no alias-delete API, so the alias lingers until the version ages out): delete Worker version aliases for merged/closed PRs (a scheduled job on the API, or a step after merge).
 13. ✅ **Cost and time budget** (`agency budget <slug> <usd>`, `AGENCY_DEFAULT_BUDGET_USD`; `--force` overrides): per-project cap; the build refuses to start when the month's spend passes it.
 14. ✅ **Actions runner parity** (`translate.yml`; `agency build --runner actions`): `translate.yml` in the template using `ANTHROPIC_API_KEY`, so unattended rebuilds work when no laptop is open.
-15. **Client handover kit**: `agency invite` tested, plus a generated one-page "how to edit your site" doc per project linking their studio.
+15. **Client handover kit**: `agency invite` tested, plus a generated one-page "how to edit your site" doc per project linking their admin.
 
 ## Product surface
 

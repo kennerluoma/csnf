@@ -6,9 +6,9 @@ The fixed target. Rigid on purpose. Every client repo is generated from it.
 
 | Concern      | Choice                                                                       | Why                                                                                                                                                                               |
 | ------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework    | **TanStack Start**, fully prerendered; `/studio` as an SPA-only route        | same router as the admin; static output keeps us on Pages with free branch previews. Confirm prerender + SPA-route combo at scaffold time; fallback is Workers with static assets |
+| Framework    | **TanStack Start**, fully prerendered; `/admin` as an SPA-only route         | same router as the admin; static output keeps us on Pages with free branch previews. Confirm prerender + SPA-route combo at scaffold time; fallback is Workers with static assets |
 | Styling      | **Tailwind 4 + CSS variables** in `src/styles/tokens.css`                    | one place for the agent to write the colours and type it pulls from the design                                                                                                    |
-| CMS          | **Sanity v4, embedded studio at `/studio`**, TypeGen, Presentation tool      | one repo, one deploy; client logs in at `<site>/studio`                                                                                                                           |
+| CMS          | **Sanity v4, embedded admin at `/admin`**, TypeGen, Presentation tool        | one repo, one deploy; client logs in at `<site>/admin`                                                                                                                            |
 | Hosting      | **Cloudflare Pages, direct upload from Actions** via `wrangler pages deploy` | no git integration needed; branch previews for free                                                                                                                               |
 | Visual tests | **Playwright + pixelmatch**                                                  | the agent's verification loop                                                                                                                                                     |
 | Quality      | TS strict, ESLint, Prettier, enforced in `ci.yml`                            | generated and hand-written code look the same                                                                                                                                     |
@@ -31,10 +31,10 @@ agency-starter/
 │   ├── styles/tokens.css       # Tailwind @theme tokens; the agent writes these
 │   ├── lib/                    # server fns (getPage), PageView
 │   └── sanity/                 # client, env, image, queries, types, schema/
-├── studio/                     # Sanity Studio app: sanity.config.ts imports ../src/sanity/schema; own wrangler.jsonc
+├── admin/                     # admin app: sanity.config.ts imports ../src/sanity/schema; own wrangler.jsonc
 ├── wrangler.jsonc              # site Worker
 ├── .github/workflows/
-│   ├── deploy.yml              # push: build → main? wrangler deploy (+ studio) : versions upload --preview-alias
+│   ├── deploy.yml              # push: build → main? wrangler deploy (+ admin) : versions upload --preview-alias
 │   ├── translate.yml           # workflow_dispatch: extract → claude -p → PR   (doc 03)   [not yet written]
 │   └── ci.yml                  # prettier, lint, typecheck, build
 └── tests/visual/               # playwright config + pixelmatch helper                   [not yet written]
@@ -46,7 +46,7 @@ agency-starter/
 
 ## Ships with
 
-Three example blocks, `siteSettings` singleton (nav, footer, logo), `deploy.yml` deploying every branch to its own Worker preview alias and `main` to production plus the studio Worker. Still to add: `translate.yml`, Playwright visual tests, Presentation tool.
+Three example blocks, `siteSettings` singleton (nav, footer, logo), `deploy.yml` deploying every branch to its own Worker preview alias and `main` to production plus the admin Worker. Still to add: `translate.yml`, Playwright visual tests, Presentation tool.
 
 ## Not in the template
 

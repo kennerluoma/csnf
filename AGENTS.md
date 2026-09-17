@@ -1,10 +1,10 @@
 # AGENTS.md — conventions for this repo
 
-This repo is a client site generated from the agency starter: TanStack Start + React 19 + Tailwind 4 + Sanity, deployed to Cloudflare Workers. The Sanity Studio is a sibling app in `studio/` (its own Worker); it imports the schema from `src/sanity/schema`. Almost all code here is written by agents. Follow these rules exactly; they are what make generated code consistent.
+This repo is a client site generated from the agency starter: TanStack Start + React 19 + Tailwind 4 + Sanity, deployed to Cloudflare Workers. The admin is a sibling app in `admin/` (its own Worker); it imports the schema from `src/sanity/schema`. Almost all code here is written by agents. Follow these rules exactly; they are what make generated code consistent.
 
 ## Commands
 
-- `pnpm dev` · site on :3000 (needs `.env` with `VITE_SANITY_PROJECT_ID`) · `pnpm dev:studio` · studio on :3333 (needs `studio/.env`)
+- `pnpm dev` · site on :3000 (needs `.env` with `VITE_SANITY_PROJECT_ID`) · `pnpm dev:admin` · admin on :3333 (needs `admin/.env`)
 - `pnpm typecheck` · `pnpm lint` · `pnpm check` (oxfmt) · `pnpm build`
 - `pnpm inventory` · regenerate the block inventory at the bottom of this file (run after adding a block)
 - `pnpm typegen` · regenerate `src/sanity/queries.gen.ts` + `src/sanity/sanity.types.ts` after any schema, block projection or query change (both are committed; CI fails when they are stale)
@@ -15,7 +15,7 @@ This repo is a client site generated from the agency starter: TanStack Start + R
 - Each block is ONE folder in `src/blocks/<Name>/` containing:
   - `<Name>.schema.ts` · exports `<name>Schema` (a Sanity `object` type via `defineType`, with a one-sentence `description` saying when to use it) and `<name>Projection` (a GROQ conditional projection: `_type == "<name>" => { ...fields }`).
   - `<Name>.tsx` · exports the React component; its props are `BlockOf<'<name>'>` from `src/sanity/types.ts` (or `Resolved<'<name>'>` from `src/blocks/resolvers.ts` when it has a resolver), never a hand-written shape. Fields are `T | null`; handle null where the value is used.
-- Every block is registered twice: its schema + projection in `src/blocks/schemas.ts` (no React; the studio imports this) and its component in `src/blocks/registry.ts` (an import and a `case` in `renderBlock`). Both alphabetical. Then `pnpm typegen`, so the block joins the `AnyBlock` union. Nothing else needs editing to add a block.
+- Every block is registered twice: its schema + projection in `src/blocks/schemas.ts` (no React; the admin imports this) and its component in `src/blocks/registry.ts` (an import and a `case` in `renderBlock`). Both alphabetical. Then `pnpm typegen`, so the block joins the `AnyBlock` union. Nothing else needs editing to add a block.
 - Blocks are pure presentational components; they never fetch. A block that lists CMS documents gets its data from a resolver in `src/blocks/resolvers.ts` (block type → function returning the block's `data` prop; receives its own block member, URL search params and site settings). Add a resolver and its `case` in `resolveBlock` there when a block needs documents; drop documents without a slug with the guards in `src/sanity/guards.ts`.
 - Shared object types (`link`, `imageWithAlt`, `richText`, `seo`) live in `src/sanity/schema/objects.ts`. Reuse them; don't redefine link/image shapes inside blocks.
 
@@ -107,7 +107,7 @@ Input: `design/manifest.json` (from Figma) and `design/renders/*.png`. Optional 
 
 ## Rebuilds
 
-`design/mapping.json` maps Figma section ids to block files, page documents and block keys. `design/manifest.prev.json` is the manifest from the previous run. A rebuild changes only what changed between the two manifests; everything else, including hand edits on `main`, stays untouched. Client edits made in the studio win over re-seeded content.
+`design/mapping.json` maps Figma section ids to block files, page documents and block keys. `design/manifest.prev.json` is the manifest from the previous run. A rebuild changes only what changed between the two manifests; everything else, including hand edits on `main`, stays untouched. Client edits made in the admin win over re-seeded content.
 
 ## Quality bar
 

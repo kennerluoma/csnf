@@ -9,7 +9,7 @@ import { existsSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { build } from 'vite'
 
-/* Only public Sanity ids are needed (the studio config reads them for `schema extract`). Locally
+/* Only public Sanity ids are needed (the admin config reads them for `schema extract`). Locally
    they come from .env; in CI there is no .env, so fall back to the committed .env.production. */
 process.loadEnvFile(existsSync('.env') ? '.env' : '.env.production')
 const env = {
@@ -50,7 +50,7 @@ ${queries.map(([name, q]) => `export const ${name} = defineQuery(\`${literal(q)}
 )
 console.log(`queries.gen.ts: ${queries.length} queries`)
 const run = (args: Array<string>) =>
-  execFileSync('pnpm', ['--filter', 'studio', 'exec', 'sanity', ...args], {
+  execFileSync('pnpm', ['--filter', 'admin', 'exec', 'sanity', ...args], {
     stdio: 'inherit',
     env,
   })

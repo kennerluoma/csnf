@@ -77,7 +77,7 @@ POST   /api/webhooks/github          workflow_run, pull_request → update build
 
 ## Dashboard screens
 
-1. **Projects** · table: name, status, last build, preview link, studio link, repo link.
+1. **Projects** · table: name, status, last build, preview link, admin link, repo link.
 2. **New project** · name, slug (auto), Figma URL. Creates the record; **Provision** is a separate button so a typo'd slug doesn't create three remote resources.
 3. **Project** · header with the four vendor links; tabs: **Jobs** (live step list per job, external run URL), **Deployments** (from cache, refresh button, each row links to its `*.pages.dev` URL), **Domains** (add hostname, shows pending/active), **Settings** (Figma file, rename).
 4. **Job** · step timeline with timings, error text, "open run in GitHub".

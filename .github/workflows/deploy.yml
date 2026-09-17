@@ -58,22 +58,22 @@ jobs:
           fi
           rm -f secrets.json
 
-      - name: Build studio
+      - name: Build admin
         if: github.ref == 'refs/heads/main'
         # The site build leaves .wrangler/deploy/config.json in the root, which wrangler
-        # would otherwise pick up from the studio directory and refuse to deploy.
-        run: rm -rf .wrangler && pnpm build:studio
+        # would otherwise pick up from the admin directory and refuse to deploy.
+        run: rm -rf .wrangler && pnpm build:admin
         env:
           SANITY_STUDIO_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
           SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
 
-      - name: Deploy studio
+      - name: Deploy admin
         if: github.ref == 'refs/heads/main'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          workingDirectory: studio
+          workingDirectory: admin
           command: deploy --config wrangler.jsonc
 
       - name: Preview alias from branch name
