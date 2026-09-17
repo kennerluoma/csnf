@@ -33,11 +33,15 @@ jobs:
       # A widget that never renders (no site key at build) still gets every submission bounced by
       # the Worker's secret-key check, so this must fail loudly rather than ship a broken form.
       - name: Turnstile configuration check
-        if: secrets.TURNSTILE_SECRET_KEY != '' && vars.TURNSTILE_SITE_KEY == ''
+        env:
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
         run: |
-          echo "TURNSTILE_SECRET_KEY is set but the TURNSTILE_SITE_KEY repository variable is not." >&2
-          echo "The contact form would verify against a widget that never renders, so every submission would fail. Set the TURNSTILE_SITE_KEY repository variable (Settings → Secrets and variables → Actions → Variables)." >&2
-          exit 1
+          if [ -n "$TURNSTILE_SECRET_KEY" ] && [ -z "$TURNSTILE_SITE_KEY" ]; then
+            echo "TURNSTILE_SECRET_KEY is set but the TURNSTILE_SITE_KEY repository variable is not." >&2
+            echo "The contact form would verify against a widget that never renders, so every submission would fail. Set the TURNSTILE_SITE_KEY repository variable (Settings → Secrets and variables → Actions → Variables)." >&2
+            exit 1
+          fi
 
       # design/mapping.json is written by the build agent and lands on main with the first merged
       # build PR. `worker` is the Worker name provisioning wrote into wrangler.jsonc.
