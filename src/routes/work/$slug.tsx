@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from '@tanstack/react-router'
 import { getArtwork } from '#/lib/page'
 import { seoMeta } from '#/lib/seo'
 import {
+  A,
   Card,
   Container,
   Grid,
@@ -62,7 +63,7 @@ function ArtworkPage() {
             </Heading>
             {doc.artist && (
               <Text muted>
-                <a href={`/artists/${doc.artist.slug}`}>{doc.artist.name}</a>
+                <A href={`/artists/${doc.artist.slug}`}>{doc.artist.name}</A>
               </Text>
             )}
             <Meta

@@ -1,4 +1,4 @@
-import { Image, Logomark, Text } from '#/ui'
+import { A, Image, Logomark, Text } from '#/ui'
 import type { SiteSettings } from '#/sanity/types'
 
 /* Logo + wordmark. Uses the uploaded logo when set, otherwise the ring mark from the design. */
@@ -11,7 +11,7 @@ export function Brand({
 }) {
   const name = settings?.siteName
   return (
-    <a
+    <A
       href="/"
       className={
         direction === 'row'
@@ -29,6 +29,6 @@ export function Brand({
           {name}
         </Text>
       )}
-    </a>
+    </A>
   )
 }

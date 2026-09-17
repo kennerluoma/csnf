@@ -9,7 +9,7 @@ import { SiteHeader } from '#/lib/SiteHeader'
 import { getSiteSettings } from '#/lib/page'
 import { seoMeta } from '#/lib/seo'
 import appCss from '#/styles/app.css?url'
-import { Container, Heading, Section, Stack, Text } from '#/ui'
+import { A, Container, Heading, Section, Stack, Text } from '#/ui'
 
 export const Route = createRootRoute({
   loader: () => getSiteSettings(),
@@ -47,7 +47,7 @@ function NotFound() {
           <Heading level={1}>Page not found</Heading>
           <Text muted>
             The page you were looking for doesn't exist.{' '}
-            <a href="/">Go to the front page</a>.
+            <A href="/">Go to the front page</A>.
           </Text>
         </Stack>
       </Container>

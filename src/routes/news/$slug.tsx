@@ -3,6 +3,7 @@ import { fmtDate } from '#/lib/dates'
 import { getPost } from '#/lib/page'
 import { seoMeta } from '#/lib/seo'
 import {
+  A,
   Badge,
   Container,
   Eyebrow,
@@ -53,13 +54,13 @@ function PostPage() {
             {doc.tags?.length ? (
               <div className="flex flex-wrap gap-2">
                 {doc.tags.map((t) => (
-                  <a
+                  <A
                     key={t}
                     href={`/news?tag=${encodeURIComponent(t)}`}
                     className="no-underline"
                   >
                     <Badge>{t}</Badge>
-                  </a>
+                  </A>
                 ))}
               </div>
             ) : null}

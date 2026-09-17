@@ -1,4 +1,5 @@
 import {
+  A,
   Container,
   Eyebrow,
   Grid,
@@ -49,7 +50,7 @@ export function CardGrid({
                 />
                 <Heading level={3}>
                   {card.link ? (
-                    <a href={card.link.href}>{card.title}</a>
+                    <A href={card.link.href}>{card.title}</A>
                   ) : (
                     card.title
                   )}

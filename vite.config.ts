@@ -13,7 +13,16 @@ const config = defineConfig({
     devtools(),
     cloudflare({ viteEnvironment: { name: 'ssr' } }),
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      // Every page reachable from `/` is rendered to static HTML at build time and served as an asset
+      // (no Worker, no Sanity call). Content edits redeploy via the Sanity webhook (deploy.yml).
+      // Routes with search params, /api and feeds stay server-rendered.
+      prerender: {
+        enabled: true,
+        crawlLinks: true,
+        filter: (p) => !/^\/(api|ics)\//.test(p.path),
+      },
+    }),
     viteReact(),
   ],
 })

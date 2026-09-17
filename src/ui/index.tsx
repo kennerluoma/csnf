@@ -1,6 +1,7 @@
 /* Primitives. The ONLY place raw Tailwind utilities live. Blocks compose these. */
 import { Fragment } from 'react'
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react'
+import { Link as RouterLink } from '@tanstack/react-router'
 import { PortableText } from '@portabletext/react'
 import type { PortableTextBlock } from '@portabletext/react'
 import { urlFor } from '#/sanity/image'
@@ -8,6 +9,38 @@ import type { AnyBlock, SanityImage } from '#/sanity/types'
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ')
+}
+
+/* Internal paths navigate client-side (router Link, preloaded on hover); everything else is a
+   plain anchor. Feeds, API routes and files are not app routes. */
+const isInternal = (href: string) =>
+  href.startsWith('/') &&
+  !/^\/(api|ics)\//.test(href) &&
+  !/\.[a-z0-9]{2,4}(\?|#|$)/i.test(href)
+
+export function A({
+  href,
+  className,
+  children,
+  ...rest
+}: ComponentPropsWithoutRef<'a'> & { href: string }) {
+  if (isInternal(href))
+    return (
+      <RouterLink to={href} className={className} {...(rest as object)}>
+        {children}
+      </RouterLink>
+    )
+  const external = /^https?:\/\//.test(href)
+  return (
+    <a
+      href={href}
+      className={className}
+      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+      {...rest}
+    >
+      {children}
+    </a>
+  )
 }
 
 export function Section({
@@ -163,9 +196,14 @@ export function Text({
   )
 }
 
-export function NavLink({ className, ...rest }: ComponentPropsWithoutRef<'a'>) {
+export function NavLink({
+  className,
+  href = '#',
+  ...rest
+}: ComponentPropsWithoutRef<'a'>) {
   return (
-    <a
+    <A
+      href={href}
       className={cx(
         'text-small text-inherit underline-offset-4 hover:underline',
         className,
@@ -200,7 +238,7 @@ export function Button({
   children: ReactNode
 }) {
   return (
-    <a
+    <A
       href={href}
       className={cx(
         'inline-flex items-center justify-center rounded-md px-5 py-3 text-body font-medium transition-colors',
@@ -211,7 +249,7 @@ export function Button({
       )}
     >
       {children}
-    </a>
+    </A>
   )
 }
 
@@ -312,7 +350,7 @@ export function Card({
   badge?: string
 }) {
   return (
-    <a href={href} className="group flex flex-col gap-3 no-underline">
+    <A href={href} className="group flex flex-col gap-3 no-underline">
       {image?.asset ? (
         <Image
           image={image}
@@ -341,7 +379,7 @@ export function Card({
         )}
         {excerpt && <Text muted>{excerpt}</Text>}
       </Stack>
-    </a>
+    </A>
   )
 }
 
@@ -506,7 +544,7 @@ export function Calendar({
                     {cell.day}
                   </div>
                   {(days[cell.iso] ?? []).map((e) => (
-                    <a
+                    <A
                       key={e.href}
                       href={e.href}
                       className="block truncate rounded-sm bg-ink px-1.5 py-0.5 text-surface no-underline hover:bg-ink/90"
@@ -514,7 +552,7 @@ export function Calendar({
                     >
                       {e.time && <span className="opacity-70">{e.time} </span>}
                       {e.title}
-                    </a>
+                    </A>
                   ))}
                 </td>
               ))}

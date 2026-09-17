@@ -3,6 +3,7 @@ import { fmtRange } from '#/lib/dates'
 import { getExhibition } from '#/lib/page'
 import { seoMeta } from '#/lib/seo'
 import {
+  A,
   Card,
   Container,
   Eyebrow,
@@ -58,7 +59,7 @@ function ExhibitionPage() {
                   {doc.artists.map((a, i) => (
                     <span key={a._id}>
                       {i > 0 && ', '}
-                      <a href={`/artists/${a.slug}`}>{a.name}</a>
+                      <A href={`/artists/${a.slug}`}>{a.name}</A>
                     </span>
                   ))}
                 </Text>
