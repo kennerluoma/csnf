@@ -1,6 +1,10 @@
 name: CI
 on:
   pull_request:
+  # A push+PR made with GITHUB_TOKEN (translate.yml's agent runs) never triggers pull_request on
+  # its own — GitHub deliberately excludes GITHUB_TOKEN-authored events from triggering workflows,
+  # to avoid recursive runs. translate.yml dispatches this explicitly for those PRs instead.
+  workflow_dispatch:
 jobs:
   check:
     runs-on: ubuntu-latest
