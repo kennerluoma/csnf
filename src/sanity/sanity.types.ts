@@ -647,7 +647,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../src/sanity/queries.gen.ts
 // Variable: artistBySlugQuery
-// Query: *[_type == "artist" && slug.current == $slug][0]{  _id, name, "slug": slug.current, "portrait": portrait{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, bio, links[]{label, href}, seo{ title, description, image, noIndex },  "artworks": *[_type == "artwork" && artist._ref == ^._id] | order(year desc){ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }}
+// Query: *[_type == "artist" && slug.current == $slug][0]{  _id, name, "slug": slug.current, "portrait": portrait{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, bio, links[]{label, href}, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex },  "artworks": *[_type == "artwork" && artist._ref == ^._id] | order(year desc){ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }}
 export type ArtistBySlugQueryResult = {
   _id: string
   name: string | null
@@ -690,7 +690,36 @@ export type ArtistBySlugQueryResult = {
   seo: {
     title: string | null
     description: string | null
-    image: ImageWithAlt | null
+    image: {
+      _type: 'imageWithAlt'
+      asset: SanityImageAssetReference | null
+      alt: string | null
+      caption: Array<{
+        children?: Array<{
+          marks?: Array<string>
+          text?: string
+          _type: 'span'
+          _key: string
+        }>
+        style?: 'normal'
+        listItem?: never
+        markDefs?: Array<{
+          href?: string
+          _type: 'link'
+          _key: string
+        }>
+        level?: number
+        _type: 'block'
+        _key: string
+      }> | null
+      hotspot: SanityImageHotspot | null
+      crop: SanityImageCrop | null
+      meta: {
+        lqip: string | null
+        width: number | null
+        height: number | null
+      } | null
+    } | null
     noIndex: boolean | null
   } | null
   artworks: Array<{
@@ -788,7 +817,7 @@ export type ArtistsQueryResult = Array<{
 
 // Source: ../src/sanity/queries.gen.ts
 // Variable: artworkBySlugQuery
-// Query: *[_type == "artwork" && slug.current == $slug][0]{  _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags, caption, dimensions, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, description,  exhibitions[]->{ _id, title, "slug": slug.current }, seo{ title, description, image, noIndex }}
+// Query: *[_type == "artwork" && slug.current == $slug][0]{  _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags, caption, dimensions, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, description,  exhibitions[]->{ _id, title, "slug": slug.current }, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex }}
 export type ArtworkBySlugQueryResult = {
   _id: string
   title: string | null
@@ -898,7 +927,36 @@ export type ArtworkBySlugQueryResult = {
   seo: {
     title: string | null
     description: string | null
-    image: ImageWithAlt | null
+    image: {
+      _type: 'imageWithAlt'
+      asset: SanityImageAssetReference | null
+      alt: string | null
+      caption: Array<{
+        children?: Array<{
+          marks?: Array<string>
+          text?: string
+          _type: 'span'
+          _key: string
+        }>
+        style?: 'normal'
+        listItem?: never
+        markDefs?: Array<{
+          href?: string
+          _type: 'link'
+          _key: string
+        }>
+        level?: number
+        _type: 'block'
+        _key: string
+      }> | null
+      hotspot: SanityImageHotspot | null
+      crop: SanityImageCrop | null
+      meta: {
+        lqip: string | null
+        width: number | null
+        height: number | null
+      } | null
+    } | null
     noIndex: boolean | null
   } | null
 } | null
@@ -983,7 +1041,7 @@ export type ArtworksQueryResult = Array<{
 
 // Source: ../src/sanity/queries.gen.ts
 // Variable: eventBySlugQuery
-// Query: *[_type == "event" && slug.current == $slug][0]{ _id, title, "slug": slug.current, start, end, allDay, location, venue->{ _id, name, "slug": slug.current, address, mapLink }, price, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, series->{ _id, title, "slug": slug.current }, ticketUrl, body, seo{ title, description, image, noIndex } }
+// Query: *[_type == "event" && slug.current == $slug][0]{ _id, title, "slug": slug.current, start, end, allDay, location, venue->{ _id, name, "slug": slug.current, address, mapLink }, price, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, series->{ _id, title, "slug": slug.current }, ticketUrl, body, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex } }
 export type EventBySlugQueryResult = {
   _id: string
   title: string | null
@@ -1040,7 +1098,36 @@ export type EventBySlugQueryResult = {
   seo: {
     title: string | null
     description: string | null
-    image: ImageWithAlt | null
+    image: {
+      _type: 'imageWithAlt'
+      asset: SanityImageAssetReference | null
+      alt: string | null
+      caption: Array<{
+        children?: Array<{
+          marks?: Array<string>
+          text?: string
+          _type: 'span'
+          _key: string
+        }>
+        style?: 'normal'
+        listItem?: never
+        markDefs?: Array<{
+          href?: string
+          _type: 'link'
+          _key: string
+        }>
+        level?: number
+        _type: 'block'
+        _key: string
+      }> | null
+      hotspot: SanityImageHotspot | null
+      crop: SanityImageCrop | null
+      meta: {
+        lqip: string | null
+        width: number | null
+        height: number | null
+      } | null
+    } | null
     noIndex: boolean | null
   } | null
 } | null
@@ -1112,7 +1199,7 @@ export type EventsQueryResult = Array<{
 
 // Source: ../src/sanity/queries.gen.ts
 // Variable: exhibitionBySlugQuery
-// Query: *[_type == "exhibition" && slug.current == $slug][0]{  _id, title, "slug": slug.current, start, end, venue, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artists[]->{ _id, name, "slug": slug.current }, body, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, pressLinks[]{label, href},  "pressRelease": select(defined(pressRelease.asset) => { "url": pressRelease.asset->url, "label": pressReleaseLabel }), seo{ title, description, image, noIndex },  "artworks": artworks[]->{ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }}
+// Query: *[_type == "exhibition" && slug.current == $slug][0]{  _id, title, "slug": slug.current, start, end, venue, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artists[]->{ _id, name, "slug": slug.current }, body, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, pressLinks[]{label, href},  "pressRelease": select(defined(pressRelease.asset) => { "url": pressRelease.asset->url, "label": pressReleaseLabel }), seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex },  "artworks": artworks[]->{ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }}
 export type ExhibitionBySlugQueryResult = {
   _id: string
   title: string | null
@@ -1197,7 +1284,36 @@ export type ExhibitionBySlugQueryResult = {
   seo: {
     title: string | null
     description: string | null
-    image: ImageWithAlt | null
+    image: {
+      _type: 'imageWithAlt'
+      asset: SanityImageAssetReference | null
+      alt: string | null
+      caption: Array<{
+        children?: Array<{
+          marks?: Array<string>
+          text?: string
+          _type: 'span'
+          _key: string
+        }>
+        style?: 'normal'
+        listItem?: never
+        markDefs?: Array<{
+          href?: string
+          _type: 'link'
+          _key: string
+        }>
+        level?: number
+        _type: 'block'
+        _key: string
+      }> | null
+      hotspot: SanityImageHotspot | null
+      crop: SanityImageCrop | null
+      meta: {
+        lqip: string | null
+        width: number | null
+        height: number | null
+      } | null
+    } | null
     noIndex: boolean | null
   } | null
   artworks: Array<{
@@ -1391,7 +1507,7 @@ export type ExhibitionsQueryResult = {
 
 // Source: ../src/sanity/queries.gen.ts
 // Variable: pageBySlugQuery
-// Query: *[_type == "page" && slug.current == $slug][0]{  _id, title, "slug": slug.current, blocks[]{ _key, _type, _type == "artistList" => { eyebrow, heading, columns },  _type == "artworkGrid" => { eyebrow, heading, intro, columns, collection, limit, featuredOnly, showFilters, cta },  _type == "cardGrid" => { eyebrow, heading, columns, cards[]{ _key, title, body, image, link } },  _type == "contactForm" => { eyebrow, heading, intro, showSubject, buttonLabel, successMessage, aside },  _type == "eventCalendar" => { eyebrow, heading, view, limit, showFilters, cta },  _type == "exhibitionList" => { eyebrow, heading, mode, pastLimit, cta },  _type == "hero" => { layout, eyebrow, heading, body, cta, image },  _type == "newsletterSignup" => { eyebrow, heading, body, buttonLabel, tone },  _type == "postList" => { eyebrow, heading, limit, columns, cta },  _type == "richTextBlock" => { heading, content } }, seo{ title, description, image, noIndex }}
+// Query: *[_type == "page" && slug.current == $slug][0]{  _id, title, "slug": slug.current, blocks[]{ _key, _type, _type == "artistList" => { eyebrow, heading, columns },  _type == "artworkGrid" => { eyebrow, heading, intro, columns, collection, limit, featuredOnly, showFilters, cta },  _type == "cardGrid" => { eyebrow, heading, columns, cards[]{ _key, title, body, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, link } },  _type == "contactForm" => { eyebrow, heading, intro, showSubject, buttonLabel, successMessage, aside },  _type == "eventCalendar" => { eyebrow, heading, view, limit, showFilters, cta },  _type == "exhibitionList" => { eyebrow, heading, mode, pastLimit, cta },  _type == "hero" => { layout, eyebrow, heading, body, cta, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } } },  _type == "newsletterSignup" => { eyebrow, heading, body, buttonLabel, tone },  _type == "postList" => { eyebrow, heading, limit, columns, cta },  _type == "richTextBlock" => { heading, content } }, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex }}
 export type PageBySlugQueryResult = {
   _id: string
   title: string | null
@@ -1427,7 +1543,36 @@ export type PageBySlugQueryResult = {
           _key: string
           title: string | null
           body: string | null
-          image: ImageWithAlt | null
+          image: {
+            _type: 'imageWithAlt'
+            asset: SanityImageAssetReference | null
+            alt: string | null
+            caption: Array<{
+              children?: Array<{
+                marks?: Array<string>
+                text?: string
+                _type: 'span'
+                _key: string
+              }>
+              style?: 'normal'
+              listItem?: never
+              markDefs?: Array<{
+                href?: string
+                _type: 'link'
+                _key: string
+              }>
+              level?: number
+              _type: 'block'
+              _key: string
+            }> | null
+            hotspot: SanityImageHotspot | null
+            crop: SanityImageCrop | null
+            meta: {
+              lqip: string | null
+              width: number | null
+              height: number | null
+            } | null
+          } | null
           link: Link | null
         }> | null
       }
@@ -1469,7 +1614,36 @@ export type PageBySlugQueryResult = {
         heading: string | null
         body: string | null
         cta: Link | null
-        image: ImageWithAlt | null
+        image: {
+          _type: 'imageWithAlt'
+          asset: SanityImageAssetReference | null
+          alt: string | null
+          caption: Array<{
+            children?: Array<{
+              marks?: Array<string>
+              text?: string
+              _type: 'span'
+              _key: string
+            }>
+            style?: 'normal'
+            listItem?: never
+            markDefs?: Array<{
+              href?: string
+              _type: 'link'
+              _key: string
+            }>
+            level?: number
+            _type: 'block'
+            _key: string
+          }> | null
+          hotspot: SanityImageHotspot | null
+          crop: SanityImageCrop | null
+          meta: {
+            lqip: string | null
+            width: number | null
+            height: number | null
+          } | null
+        } | null
       }
     | {
         _key: string
@@ -1499,14 +1673,43 @@ export type PageBySlugQueryResult = {
   seo: {
     title: string | null
     description: string | null
-    image: ImageWithAlt | null
+    image: {
+      _type: 'imageWithAlt'
+      asset: SanityImageAssetReference | null
+      alt: string | null
+      caption: Array<{
+        children?: Array<{
+          marks?: Array<string>
+          text?: string
+          _type: 'span'
+          _key: string
+        }>
+        style?: 'normal'
+        listItem?: never
+        markDefs?: Array<{
+          href?: string
+          _type: 'link'
+          _key: string
+        }>
+        level?: number
+        _type: 'block'
+        _key: string
+      }> | null
+      hotspot: SanityImageHotspot | null
+      crop: SanityImageCrop | null
+      meta: {
+        lqip: string | null
+        width: number | null
+        height: number | null
+      } | null
+    } | null
     noIndex: boolean | null
   } | null
 } | null
 
 // Source: ../src/sanity/queries.gen.ts
 // Variable: postBySlugQuery
-// Query: *[_type == "post" && slug.current == $slug][0]{ _id, title, "slug": slug.current, date, excerpt, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, tags, body, seo{ title, description, image, noIndex } }
+// Query: *[_type == "post" && slug.current == $slug][0]{ _id, title, "slug": slug.current, date, excerpt, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, tags, body, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex } }
 export type PostBySlugQueryResult = {
   _id: string
   title: string | null
@@ -1548,7 +1751,36 @@ export type PostBySlugQueryResult = {
   seo: {
     title: string | null
     description: string | null
-    image: ImageWithAlt | null
+    image: {
+      _type: 'imageWithAlt'
+      asset: SanityImageAssetReference | null
+      alt: string | null
+      caption: Array<{
+        children?: Array<{
+          marks?: Array<string>
+          text?: string
+          _type: 'span'
+          _key: string
+        }>
+        style?: 'normal'
+        listItem?: never
+        markDefs?: Array<{
+          href?: string
+          _type: 'link'
+          _key: string
+        }>
+        level?: number
+        _type: 'block'
+        _key: string
+      }> | null
+      hotspot: SanityImageHotspot | null
+      crop: SanityImageCrop | null
+      meta: {
+        lqip: string | null
+        width: number | null
+        height: number | null
+      } | null
+    } | null
     noIndex: boolean | null
   } | null
 } | null
@@ -1597,10 +1829,39 @@ export type PostsQueryResult = Array<{
 
 // Source: ../src/sanity/queries.gen.ts
 // Variable: siteSettingsQuery
-// Query: *[_type == "siteSettings"][0]{  siteName, logo, nav[]{label, href}, footerText, social[]{label, href}, analyticsId,  seo{ title, description, image, noIndex }, contactEmail, newsletter{provider, actionUrl}}
+// Query: *[_type == "siteSettings"][0]{  siteName, "logo": logo{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, nav[]{label, href}, footerText, social[]{label, href}, analyticsId,  seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex }, contactEmail, newsletter{provider, actionUrl}}
 export type SiteSettingsQueryResult = {
   siteName: string | null
-  logo: ImageWithAlt | null
+  logo: {
+    _type: 'imageWithAlt'
+    asset: SanityImageAssetReference | null
+    alt: string | null
+    caption: Array<{
+      children?: Array<{
+        marks?: Array<string>
+        text?: string
+        _type: 'span'
+        _key: string
+      }>
+      style?: 'normal'
+      listItem?: never
+      markDefs?: Array<{
+        href?: string
+        _type: 'link'
+        _key: string
+      }>
+      level?: number
+      _type: 'block'
+      _key: string
+    }> | null
+    hotspot: SanityImageHotspot | null
+    crop: SanityImageCrop | null
+    meta: {
+      lqip: string | null
+      width: number | null
+      height: number | null
+    } | null
+  } | null
   nav: Array<{
     label: string | null
     href: string | null
@@ -1614,7 +1875,36 @@ export type SiteSettingsQueryResult = {
   seo: {
     title: string | null
     description: string | null
-    image: ImageWithAlt | null
+    image: {
+      _type: 'imageWithAlt'
+      asset: SanityImageAssetReference | null
+      alt: string | null
+      caption: Array<{
+        children?: Array<{
+          marks?: Array<string>
+          text?: string
+          _type: 'span'
+          _key: string
+        }>
+        style?: 'normal'
+        listItem?: never
+        markDefs?: Array<{
+          href?: string
+          _type: 'link'
+          _key: string
+        }>
+        level?: number
+        _type: 'block'
+        _key: string
+      }> | null
+      hotspot: SanityImageHotspot | null
+      crop: SanityImageCrop | null
+      meta: {
+        lqip: string | null
+        width: number | null
+        height: number | null
+      } | null
+    } | null
     noIndex: boolean | null
   } | null
   contactEmail: string | null
@@ -1719,20 +2009,20 @@ export type UpcomingEventsQueryResult = Array<{
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '*[_type == "artist" && slug.current == $slug][0]{\n  _id, name, "slug": slug.current, "portrait": portrait{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, bio, links[]{label, href}, seo{ title, description, image, noIndex },\n  "artworks": *[_type == "artwork" && artist._ref == ^._id] | order(year desc){ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }\n}': ArtistBySlugQueryResult
+    '*[_type == "artist" && slug.current == $slug][0]{\n  _id, name, "slug": slug.current, "portrait": portrait{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, bio, links[]{label, href}, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex },\n  "artworks": *[_type == "artwork" && artist._ref == ^._id] | order(year desc){ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }\n}': ArtistBySlugQueryResult
     '*[_type == "artist"] | order(name asc){ _id, name, "slug": slug.current, "portrait": portrait{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } } }': ArtistsQueryResult
-    '*[_type == "artwork" && slug.current == $slug][0]{\n  _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags, caption, dimensions, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, description,\n  exhibitions[]->{ _id, title, "slug": slug.current }, seo{ title, description, image, noIndex }\n}': ArtworkBySlugQueryResult
+    '*[_type == "artwork" && slug.current == $slug][0]{\n  _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags, caption, dimensions, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, description,\n  exhibitions[]->{ _id, title, "slug": slug.current }, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex }\n}': ArtworkBySlugQueryResult
     '{\n  "artists": *[_type == "artist" && count(*[_type == "artwork" && references(^._id)]) > 0] | order(name asc){ _id, name, "slug": slug.current },\n  "years": array::unique(*[_type == "artwork" && defined(year)].year) | order(@ desc),\n  "media": array::unique(*[_type == "artwork" && defined(medium)].medium) | order(@ asc),\n  "collections": array::unique(*[_type == "artwork" && defined(collection)].collection) | order(@ asc),\n  "tags": array::unique(*[_type == "artwork" && defined(tags)].tags[]) | order(@ asc)\n}': ArtworkFiltersQueryResult
     '*[_type == "artwork"\n  && ($artist == "" || artist->slug.current == $artist)\n  && ($year == 0 || year == $year)\n  && ($medium == "" || medium == $medium)\n  && ($collection == "" || collection == $collection)\n  && ($tagFilter == "" || $tagFilter in tags)\n  && ($featured == false || featured == true)\n] | order(featured desc, coalesce(date, string(year) + "-01-01") desc, title asc)[0...$limit]{ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }': ArtworksQueryResult
-    '*[_type == "event" && slug.current == $slug][0]{ _id, title, "slug": slug.current, start, end, allDay, location, venue->{ _id, name, "slug": slug.current, address, mapLink }, price, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, series->{ _id, title, "slug": slug.current }, ticketUrl, body, seo{ title, description, image, noIndex } }': EventBySlugQueryResult
+    '*[_type == "event" && slug.current == $slug][0]{ _id, title, "slug": slug.current, start, end, allDay, location, venue->{ _id, name, "slug": slug.current, address, mapLink }, price, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, series->{ _id, title, "slug": slug.current }, ticketUrl, body, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex } }': EventBySlugQueryResult
     '*[_type == "eventSeries"] | order(title asc){ _id, title, "slug": slug.current }': EventSeriesQueryResult
     '*[_type == "event" && start >= $from && start < $to\n  && ($series == "" || series->slug.current == $series)\n] | order(start asc){ _id, title, "slug": slug.current, start, end, allDay, location, venue->{ _id, name, "slug": slug.current, address, mapLink }, price, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, series->{ _id, title, "slug": slug.current } }': EventsQueryResult
-    '*[_type == "exhibition" && slug.current == $slug][0]{\n  _id, title, "slug": slug.current, start, end, venue, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artists[]->{ _id, name, "slug": slug.current }, body, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, pressLinks[]{label, href},\n  "pressRelease": select(defined(pressRelease.asset) => { "url": pressRelease.asset->url, "label": pressReleaseLabel }), seo{ title, description, image, noIndex },\n  "artworks": artworks[]->{ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }\n}': ExhibitionBySlugQueryResult
+    '*[_type == "exhibition" && slug.current == $slug][0]{\n  _id, title, "slug": slug.current, start, end, venue, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artists[]->{ _id, name, "slug": slug.current }, body, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, pressLinks[]{label, href},\n  "pressRelease": select(defined(pressRelease.asset) => { "url": pressRelease.asset->url, "label": pressReleaseLabel }), seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex },\n  "artworks": artworks[]->{ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }\n}': ExhibitionBySlugQueryResult
     '{\n  "current": *[_type == "exhibition" && start <= $today && (!defined(end) || end >= $today)] | order(start desc){ _id, title, "slug": slug.current, start, end, venue, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artists[]->{ _id, name, "slug": slug.current } },\n  "upcoming": *[_type == "exhibition" && start > $today] | order(start asc){ _id, title, "slug": slug.current, start, end, venue, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artists[]->{ _id, name, "slug": slug.current } },\n  "past": *[_type == "exhibition" && defined(end) && end < $today] | order(start desc)[0...$limit]{ _id, title, "slug": slug.current, start, end, venue, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artists[]->{ _id, name, "slug": slug.current } }\n}': ExhibitionsQueryResult
-    '*[_type == "page" && slug.current == $slug][0]{\n  _id, title, "slug": slug.current, blocks[]{ _key, _type, _type == "artistList" => { eyebrow, heading, columns },\n  _type == "artworkGrid" => { eyebrow, heading, intro, columns, collection, limit, featuredOnly, showFilters, cta },\n  _type == "cardGrid" => { eyebrow, heading, columns, cards[]{ _key, title, body, image, link } },\n  _type == "contactForm" => { eyebrow, heading, intro, showSubject, buttonLabel, successMessage, aside },\n  _type == "eventCalendar" => { eyebrow, heading, view, limit, showFilters, cta },\n  _type == "exhibitionList" => { eyebrow, heading, mode, pastLimit, cta },\n  _type == "hero" => { layout, eyebrow, heading, body, cta, image },\n  _type == "newsletterSignup" => { eyebrow, heading, body, buttonLabel, tone },\n  _type == "postList" => { eyebrow, heading, limit, columns, cta },\n  _type == "richTextBlock" => { heading, content } }, seo{ title, description, image, noIndex }\n}': PageBySlugQueryResult
-    '*[_type == "post" && slug.current == $slug][0]{ _id, title, "slug": slug.current, date, excerpt, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, tags, body, seo{ title, description, image, noIndex } }': PostBySlugQueryResult
+    '*[_type == "page" && slug.current == $slug][0]{\n  _id, title, "slug": slug.current, blocks[]{ _key, _type, _type == "artistList" => { eyebrow, heading, columns },\n  _type == "artworkGrid" => { eyebrow, heading, intro, columns, collection, limit, featuredOnly, showFilters, cta },\n  _type == "cardGrid" => { eyebrow, heading, columns, cards[]{ _key, title, body, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, link } },\n  _type == "contactForm" => { eyebrow, heading, intro, showSubject, buttonLabel, successMessage, aside },\n  _type == "eventCalendar" => { eyebrow, heading, view, limit, showFilters, cta },\n  _type == "exhibitionList" => { eyebrow, heading, mode, pastLimit, cta },\n  _type == "hero" => { layout, eyebrow, heading, body, cta, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } } },\n  _type == "newsletterSignup" => { eyebrow, heading, body, buttonLabel, tone },\n  _type == "postList" => { eyebrow, heading, limit, columns, cta },\n  _type == "richTextBlock" => { heading, content } }, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex }\n}': PageBySlugQueryResult
+    '*[_type == "post" && slug.current == $slug][0]{ _id, title, "slug": slug.current, date, excerpt, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, tags, body, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex } }': PostBySlugQueryResult
     '*[_type == "post" && ($tagFilter == "" || $tagFilter in tags)] | order(date desc)[0...$limit]{ _id, title, "slug": slug.current, date, excerpt, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, tags }': PostsQueryResult
-    '*[_type == "siteSettings"][0]{\n  siteName, logo, nav[]{label, href}, footerText, social[]{label, href}, analyticsId,\n  seo{ title, description, image, noIndex }, contactEmail, newsletter{provider, actionUrl}\n}': SiteSettingsQueryResult
+    '*[_type == "siteSettings"][0]{\n  siteName, "logo": logo{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, nav[]{label, href}, footerText, social[]{label, href}, analyticsId,\n  seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex }, contactEmail, newsletter{provider, actionUrl}\n}': SiteSettingsQueryResult
     '{\n  "pages": *[_type == "page" && seo.noIndex != true]{ "slug": slug.current, _updatedAt },\n  "artworks": *[_type == "artwork"]{ "slug": slug.current, _updatedAt },\n  "artists": *[_type == "artist"]{ "slug": slug.current, _updatedAt },\n  "exhibitions": *[_type == "exhibition"]{ "slug": slug.current, _updatedAt },\n  "events": *[_type == "event"]{ "slug": slug.current, _updatedAt },\n  "posts": *[_type == "post"]{ "slug": slug.current, _updatedAt }\n}': SitemapQueryResult
     '*[_type == "event" && (start >= $now || (defined(end) && end >= $now))\n  && ($series == "" || series->slug.current == $series)\n] | order(start asc)[0...$limit]{ _id, title, "slug": slug.current, start, end, allDay, location, venue->{ _id, name, "slug": slug.current, address, mapLink }, price, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, series->{ _id, title, "slug": slug.current } }': UpcomingEventsQueryResult
   }

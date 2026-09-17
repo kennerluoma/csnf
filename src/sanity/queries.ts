@@ -1,17 +1,17 @@
 import { blockProjections } from '#/blocks/schemas'
+import { img } from './img'
+
+export { img }
 
 const blocks = `blocks[]{ _key, _type, ${blockProjections} }`
-const seo = `seo{ title, description, image, noIndex }`
-/* Image with the asset's lqip + size for blur-up and aspect (src/ui Image). Use for any image field. */
-export const img = (field: string, alias = field) =>
-  `"${alias}": ${field}{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }`
+const seo = `seo{ title, description, ${img('image')}, noIndex }`
 
 export const pageBySlugQuery = /* groq */ `*[_type == "page" && slug.current == $slug][0]{
   _id, title, "slug": slug.current, ${blocks}, ${seo}
 }`
 
 export const siteSettingsQuery = /* groq */ `*[_type == "siteSettings"][0]{
-  siteName, logo, nav[]{label, href}, footerText, social[]{label, href}, analyticsId,
+  siteName, ${img('logo')}, nav[]{label, href}, footerText, social[]{label, href}, analyticsId,
   ${seo}, contactEmail, newsletter{provider, actionUrl}
 }`
 

@@ -14,6 +14,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      # Generated Sanity types are committed and must be current (reads .env.production; no secrets).
+      - run: pnpm typegen
+      - run: git diff --exit-code src/sanity/queries.gen.ts src/sanity/sanity.types.ts
       - run: pnpm check
       - run: pnpm lint
       - run: pnpm typecheck

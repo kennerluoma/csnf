@@ -1,4 +1,5 @@
 import { defineField, defineType } from '@sanity/types'
+import { img } from '../../sanity/img'
 
 export const heroSchema = defineType({
   name: 'hero',
@@ -33,8 +34,8 @@ export const heroSchema = defineType({
   ],
   preview: {
     select: { title: 'heading' },
-    prepare: ({ title }) => ({ title, subtitle: 'Hero' }),
+    prepare: ({ title }: { title?: string }) => ({ title, subtitle: 'Hero' }),
   },
 })
 
-export const heroProjection = /* groq */ `_type == "hero" => { layout, eyebrow, heading, body, cta, image }`
+export const heroProjection = /* groq */ `_type == "hero" => { layout, eyebrow, heading, body, cta, ${img('image')} }`
