@@ -67,6 +67,7 @@ export const Route = createFileRoute('/api/contact')({
               useCdn: false,
             })
             await write.create({
+              _id: `submissions.${crypto.randomUUID()}`,
               _type: 'submission',
               name,
               email,
