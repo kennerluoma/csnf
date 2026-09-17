@@ -28,7 +28,8 @@ Ordered by risk. Prove the build agent on one design before wrapping it in an ap
 - Deployments cache + tab; `add_domain` job with pending state.
 - **Exit:** a test domain on our zone goes pending → active from the dashboard; deployments list matches Cloudflare.
 
-## Phase 4 · Rebuild quality — rules + mapping.json contract written 2026-09-16; rebuild test in progress with fixtures/studio-site/manifest.v2.json
+## Phase 4 · Rebuild quality — DONE 2026-09-16 (first pass)
+- Rebuild test on agency-test-2 with fixtures/studio-site/manifest.v2.json (hero copy change, LogoStrip added, CtaBanner removed): PR #5 in 4.4 min touched only the new block, tokens (+1 spacing), mapping.json and the page writer; About/Contact untouched. The agent rewrote `scripts/pages.ts` to be merge-aware (only overwrites fields whose live value equals the previous seed; studio edits kept; `ifRevisionId`; `--dry-run`).
 
 - `mapping.json`, manifest diff, touch-only-changed-nodes, seed-content merge rules.
 - **Exit:** three design edits (copy, add section, remove section) → three PRs; hand edits on `main` survive.
