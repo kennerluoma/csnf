@@ -8,6 +8,15 @@ const defaults: Record<
   { title: string; block: string; props?: Record<string, unknown> }
 > = {
   work: { title: 'Work', block: 'artworkGrid', props: { heading: 'Work' } },
+  'works-on-paper': {
+    title: 'Works on Paper',
+    block: 'artworkGrid',
+    props: {
+      heading: 'Works on Paper',
+      collection: 'Works on Paper',
+      showFilters: false,
+    },
+  },
   artists: {
     title: 'Artists',
     block: 'artistList',

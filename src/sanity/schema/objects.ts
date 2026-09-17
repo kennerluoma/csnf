@@ -23,7 +23,15 @@ export const imageWithAlt = defineType({
   title: 'Image',
   type: 'image',
   options: { hotspot: true },
-  fields: [defineField({ name: 'alt', type: 'string', title: 'Alt text' })],
+  fields: [
+    defineField({ name: 'alt', type: 'string', title: 'Alt text' }),
+    defineField({
+      name: 'caption',
+      type: 'array',
+      of: [{ type: 'block', styles: [], lists: [] }],
+      description: 'Optional per-image caption (galleries, lightboxes).',
+    }),
+  ],
 })
 
 export const richText = defineType({

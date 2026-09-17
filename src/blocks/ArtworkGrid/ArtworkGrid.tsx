@@ -19,6 +19,7 @@ export type ArtworkGridProps = {
   columns?: 2 | 3 | 4
   limit?: number
   featuredOnly?: boolean
+  collection?: string
   showFilters?: boolean
   cta?: Link
   /* resolved server-side (src/blocks/resolvers.ts) */
@@ -27,6 +28,7 @@ export type ArtworkGridProps = {
     artists: Array<{ slug: string; name: string }>
     years: Array<number>
     media: Array<string>
+    collections: Array<string>
     tags: Array<string>
   }
   values?: Record<string, string | undefined>
@@ -75,6 +77,14 @@ export function ArtworkGrid({
                   options: filters.years.map((y) => ({
                     value: String(y),
                     label: String(y),
+                  })),
+                },
+                {
+                  name: 'collection',
+                  label: 'Collection',
+                  options: filters.collections.map((c) => ({
+                    value: c,
+                    label: c,
                   })),
                 },
                 {

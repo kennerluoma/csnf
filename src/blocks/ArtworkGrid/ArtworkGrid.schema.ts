@@ -17,6 +17,12 @@ export const artworkGridSchema = defineType({
       initialValue: 3,
     }),
     defineField({
+      name: 'collection',
+      type: 'string',
+      description:
+        'Only works in this collection (e.g. "Works on Paper"). Empty = all.',
+    }),
+    defineField({
       name: 'limit',
       type: 'number',
       description: 'Maximum items. Leave empty for all.',
@@ -48,4 +54,4 @@ export const artworkGridSchema = defineType({
   },
 })
 
-export const artworkGridProjection = /* groq */ `_type == "artworkGrid" => { eyebrow, heading, intro, columns, limit, featuredOnly, showFilters, cta }`
+export const artworkGridProjection = /* groq */ `_type == "artworkGrid" => { eyebrow, heading, intro, columns, collection, limit, featuredOnly, showFilters, cta }`

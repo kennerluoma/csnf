@@ -218,21 +218,43 @@ export function Button({
 export function Image({
   image,
   width = 1600,
+  quality = 75,
   className,
   sizes,
+  loading = 'lazy',
+  onClick,
 }: {
   image: SanityImage | null | undefined
   width?: number
+  quality?: number
   className?: string
   sizes?: string
+  loading?: 'lazy' | 'eager'
+  onClick?: () => void
 }) {
   if (!image?.asset) return null
+  const url = (w: number) =>
+    urlFor(image).width(Math.round(w)).quality(quality).auto('format').url()
+  const meta = image.meta
+  // blur-up: the asset's lqip as background until the real image paints (needs the `img()` projection)
+  const style = meta?.lqip
+    ? { backgroundImage: `url(${meta.lqip})`, backgroundSize: 'cover' }
+    : undefined
   return (
     <img
-      src={urlFor(image).width(width).auto('format').url()}
+      src={url(width)}
+      srcSet={[width / 2, width, width * 1.5]
+        .filter((w) => !meta?.width || w <= meta.width * 1.5)
+        .map((w) => `${url(w)} ${Math.round(w)}w`)
+        .join(', ')}
+      sizes={sizes ?? `(min-width: 1024px) ${Math.min(width, 1600)}px, 100vw`}
+      width={meta?.width}
+      height={meta?.height}
       alt={image.alt ?? ''}
-      sizes={sizes}
-      loading="lazy"
+      loading={loading}
+      decoding="async"
+      onClick={onClick}
+      style={style}
       className={cx('h-auto w-full rounded-lg object-cover', className)}
     />
   )

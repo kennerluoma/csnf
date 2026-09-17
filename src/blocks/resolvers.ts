@@ -52,13 +52,17 @@ export const blockResolvers: Record<string, Resolver> = {
       artist: search.artist,
       year: search.year,
       medium: search.medium,
+      collection:
+        search.collection ??
+        (typeof block.collection === 'string' ? block.collection : undefined),
       tag: search.tag,
     }
     const [items, filters] = await Promise.all([
-      client.fetch<Array<ArtworkCard>>(artworksQuery as string, {
+      client.fetch<Array<ArtworkCard>>(artworksQuery, {
         artist: str(values.artist),
         year: Number(values.year) || 0,
         medium: str(values.medium),
+        collection: str(values.collection),
         tagFilter: str(values.tag),
         featured: block.featuredOnly === true,
         limit: num(block.limit, 500),
@@ -80,7 +84,7 @@ export const blockResolvers: Record<string, Resolver> = {
       current: Array<ExhibitionCard>
       upcoming: Array<ExhibitionCard>
       past: Array<ExhibitionCard>
-    }>(exhibitionsQuery as string, {
+    }>(exhibitionsQuery, {
       today: todayIso(),
       limit: num(block.pastLimit, 12),
     })
@@ -93,14 +97,14 @@ export const blockResolvers: Record<string, Resolver> = {
     const [inMonth, upcoming, allSeries] = await Promise.all([
       block.view === 'list'
         ? []
-        : client.fetch<Array<EventCard>>(eventsQuery as string, {
+        : client.fetch<Array<EventCard>>(eventsQuery, {
             from: m.from,
             to: m.to,
             series,
           }),
       block.view === 'month'
         ? []
-        : client.fetch<Array<EventCard>>(upcomingEventsQuery as string, {
+        : client.fetch<Array<EventCard>>(upcomingEventsQuery, {
             now: new Date().toISOString(),
             series,
             limit: num(block.limit, 12),
@@ -129,7 +133,7 @@ export const blockResolvers: Record<string, Resolver> = {
   },
 
   async postList(block, { search }) {
-    const items = await client.fetch<Array<PostCard>>(postsQuery as string, {
+    const items = await client.fetch<Array<PostCard>>(postsQuery, {
       tagFilter: str(search.tag),
       limit: num(block.limit, 6),
     })

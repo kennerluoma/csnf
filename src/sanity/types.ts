@@ -2,6 +2,9 @@ export type SanityImage = {
   _type: 'image'
   asset?: { _ref: string; _type: 'reference' }
   alt?: string
+  caption?: Array<AnyBlock>
+  /* present when the projection dereferences the asset (Image primitive blur-up + aspect) */
+  meta?: { lqip?: string; width?: number; height?: number }
   hotspot?: JsonValue
   crop?: JsonValue
 }
@@ -63,12 +66,15 @@ export type ArtworkCard = {
   title: string
   slug: string
   year?: number
+  date?: string
+  collection?: string
   medium?: string
   image?: SanityImage
   artist?: ArtistRef
   tags?: Array<string>
 }
 export type ArtworkDoc = ArtworkCard & {
+  caption?: Array<AnyBlock>
   dimensions?: string
   images?: Array<SanityImage>
   description?: RichTextValue
@@ -99,6 +105,7 @@ export type ExhibitionDoc = ExhibitionCard & {
   images?: Array<SanityImage>
   artworks?: Array<ArtworkCard>
   pressLinks?: Array<Link>
+  pressRelease?: { url: string; label?: string }
   seo?: Seo
 }
 

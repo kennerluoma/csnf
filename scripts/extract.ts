@@ -621,10 +621,13 @@ type FigmaFile = {
 let figImport: FigImport | undefined
 if (fromFig) {
   figImport = figToRest(fromFig, { page: pageArg })
-  const auto = pageArg ?? figImport.pages.find((p) => /^final$/i.test(p.trim()))
-  if (!pageArg && auto) figImport = figToRest(fromFig, { page: auto })
+  const main = pageArg ?? figImport.pages.find((p) => /^final$/i.test(p.trim()))
+  // mobile pages ride along: their frames become the mobile viewport of the same routes
+  const mobile = figImport.pages.filter((p) => /mobile/i.test(p) && p !== main)
+  const chosen = main ? [main, ...mobile] : undefined
+  if (chosen) figImport = figToRest(fromFig, { pages: chosen })
   console.error(
-    `fig: pages [${figImport.pages.join(', ')}] → using ${auto ? `"${auto}"` : 'all pages'} (pass --page to choose)`,
+    `fig: pages [${figImport.pages.join(', ')}] → using ${chosen ? chosen.map((p) => `"${p}"`).join(' + ') : 'all pages'} (pass --page to choose the main page)`,
   )
 }
 const file = (

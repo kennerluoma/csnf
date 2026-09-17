@@ -46,7 +46,29 @@ export const artwork = defineType({
       type: 'reference',
       to: [{ type: 'artist' }],
     }),
+    defineField({
+      name: 'collection',
+      type: 'string',
+      description:
+        'Group works the way the artist does: Paintings, Works on Paper, Sculpture… Index blocks and routes can filter by it.',
+      options: {
+        list: [
+          'Paintings',
+          'Works on Paper',
+          'Sculpture',
+          'Photography',
+          'Video',
+          'Other',
+        ],
+      },
+      initialValue: 'Paintings',
+    }),
     defineField({ name: 'year', type: 'number' }),
+    defineField({
+      name: 'date',
+      type: 'date',
+      description: 'Optional exact date (sorts before year).',
+    }),
     defineField({ name: 'medium', type: 'string' }),
     defineField({
       name: 'dimensions',
@@ -58,6 +80,13 @@ export const artwork = defineType({
       type: 'array',
       of: [{ type: 'imageWithAlt' }],
       validation: (r) => r.min(1),
+    }),
+    defineField({
+      name: 'caption',
+      type: 'array',
+      of: [{ type: 'block', styles: [], lists: [] }],
+      description:
+        'Freeform caption shown with the work ("Oil on linen, 2024. Courtesy …") when the structured fields are not enough.',
     }),
     defineField({ name: 'description', type: 'richText' }),
     defineField({
@@ -132,6 +161,12 @@ export const exhibition = defineType({
       of: [{ type: 'imageWithAlt' }],
     }),
     defineField({ name: 'pressLinks', type: 'array', of: [{ type: 'link' }] }),
+    defineField({ name: 'pressRelease', type: 'file', description: 'PDF' }),
+    defineField({
+      name: 'pressReleaseLabel',
+      type: 'string',
+      description: 'Link text; defaults to "Press release".',
+    }),
     seoField,
   ],
   orderings: [

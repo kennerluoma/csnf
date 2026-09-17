@@ -213,7 +213,7 @@ export type FigImport = {
 
 export function figToRest(
   path: string,
-  opts: { page?: string } = {},
+  opts: { page?: string; pages?: Array<string> } = {},
 ): FigImport {
   const zip = readZip(path)
   const canvas = zip.get('canvas.fig')
@@ -341,11 +341,14 @@ export function figToRest(
         name: n.name,
         description: n.description ?? '',
       }
-  const wanted = opts.page
-    ? (doc.children as Array<FigNode>).filter((p) => p.name === opts.page)
+  const chosen = opts.pages ?? (opts.page ? [opts.page] : undefined)
+  const wanted = chosen
+    ? (doc.children as Array<FigNode>).filter((p) => chosen.includes(p.name))
     : (doc.children as Array<FigNode>)
-  if (opts.page && !wanted.length)
-    throw new Error(`page "${opts.page}" not found; pages: ${pages.join(', ')}`)
+  if (chosen && !wanted.length)
+    throw new Error(
+      `page(s) ${chosen.join(', ')} not found; pages: ${pages.join(', ')}`,
+    )
   const document = {
     id: '0:0',
     name: 'Document',

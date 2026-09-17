@@ -11,7 +11,7 @@ export const Route = createFileRoute('/ics/events')({
       GET: async ({ request }) => {
         const url = new URL(request.url)
         const [events, settings] = await Promise.all([
-          client.fetch<Array<EventCard>>(upcomingEventsQuery as string, {
+          client.fetch<Array<EventCard>>(upcomingEventsQuery, {
             now: new Date(Date.now() - 30 * 86_400_000).toISOString(),
             series: url.searchParams.get('series') ?? '',
             limit: 500,
