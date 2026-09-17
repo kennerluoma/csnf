@@ -10,6 +10,8 @@ concurrency:
 
 jobs:
   deploy:
+    # Dependabot PRs get no secrets, so they can't deploy a preview; CI still builds and checks them.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: read

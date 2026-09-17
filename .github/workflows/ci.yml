@@ -5,9 +5,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
-      # Prerendering reads the (public) dataset at build time, so CI needs the real project id.
-      VITE_SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
-      VITE_SANITY_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
+      # Prerendering reads the (public) dataset at build time. The id normally comes from the
+      # committed .env.production; the secret, when present, wins (Dependabot PRs get no secrets).
+      SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -17,7 +17,9 @@ jobs:
       - run: pnpm check
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm build
+      - run: |
+          [ -n "$SANITY_PROJECT_ID" ] && export VITE_SANITY_PROJECT_ID="$SANITY_PROJECT_ID"
+          pnpm build
       # "Instant" is checked: JS size, and clicks that make no document or server-function request.
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm budget
