@@ -16,7 +16,11 @@ on:
 
 concurrency:
   group: deploy-${{ github.ref }}
-  cancel-in-progress: true
+  # The content webhook dispatches this on every Sanity publish, so two edits a minute apart on
+  # main could cancel a run mid-deploy (between "Deploy production" and "Worker secrets" or
+  # "Deploy admin", or mid wrangler deploy) — a site live without its secrets, or a stale admin.
+  # Previews (any other ref) still cancel: only the newest preview for a branch is worth keeping.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   deploy:
@@ -26,7 +30,11 @@ jobs:
     permissions:
       contents: read
     env:
-      VITE_SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+      # Not VITE_SANITY_PROJECT_ID directly: Vite gives process.env priority over .env.production
+      # regardless of value, so setting it to '' when the secret is unset would blank out the
+      # committed .env.production id instead of falling back to it. Exported as VITE_ only when
+      # non-empty, right before the Build step below.
+      SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
       VITE_SANITY_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
       # Public (a site key, not the secret): inlined at build time by Vite, so the prerendered
       # contact page (and the deployed Worker bundle, which is the same build output) has it —
@@ -80,7 +88,9 @@ jobs:
 
       - name: Build
         if: github.ref != 'refs/heads/main' || steps.site.outputs.built == 'true'
-        run: pnpm build
+        run: |
+          [ -n "$SANITY_PROJECT_ID" ] && export VITE_SANITY_PROJECT_ID="$SANITY_PROJECT_ID"
+          pnpm build
 
       - name: Deploy production
         if: github.ref == 'refs/heads/main' && steps.site.outputs.built == 'true'

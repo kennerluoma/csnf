@@ -30,7 +30,12 @@ jobs:
       contents: write
       pull-requests: write
     env:
-      VITE_SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+      # Not VITE_SANITY_PROJECT_ID directly: Vite gives process.env priority over .env.production
+      # regardless of value, so setting it to '' when the secret is unset would blank out the
+      # committed .env.production id instead of falling back to it. Exported as VITE_ only when
+      # non-empty, right after checkout below (this job's later steps — extract, the dev server
+      # for screenshots — all need it, not just a single build step).
+      SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
       VITE_SANITY_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
       SANITY_WRITE_TOKEN: ${{ secrets.SANITY_WRITE_TOKEN }}
       FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
@@ -47,6 +52,11 @@ jobs:
         run: |
           test -n "$ANTHROPIC_API_KEY" || { echo "ANTHROPIC_API_KEY secret is not set"; exit 1; }
           test -n "$SANITY_WRITE_TOKEN" || { echo "SANITY_WRITE_TOKEN secret is not set"; exit 1; }
+      - name: Export VITE_SANITY_PROJECT_ID (only when the secret is set)
+        run: |
+          if [ -n "$SANITY_PROJECT_ID" ]; then
+            echo "VITE_SANITY_PROJECT_ID=$SANITY_PROJECT_ID" >> "$GITHUB_ENV"
+          fi
       - run: npm i -g @anthropic-ai/claude-code
       - run: pnpm exec playwright install --with-deps chromium
 
@@ -103,3 +113,9 @@ jobs:
           [ -f design/pr-body.md ] || echo "Agent run (Actions)" > design/pr-body.md
           gh pr create --base "${{ github.ref_name }}" --head "${{ steps.branch.outputs.branch }}" \
             --title "design: translate Figma (${{ steps.branch.outputs.branch }})" --body-file design/pr-body.md
+          # GitHub deliberately never triggers a workflow from an event made with GITHUB_TOKEN
+          # (github.token above), so this push and PR would otherwise get no ci.yml (pull_request)
+          # and no deploy.yml preview (push) — a design PR mergeable with no lint/type/build/budget
+          # check at all. Dispatch both explicitly against the branch just pushed.
+          gh workflow run ci.yml --ref "${{ steps.branch.outputs.branch }}"
+          gh workflow run deploy.yml --ref "${{ steps.branch.outputs.branch }}"
