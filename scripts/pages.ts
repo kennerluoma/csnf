@@ -16,7 +16,12 @@ type Section = {
   images?: Array<{ name: string; file?: string }>
 }
 type Manifest = {
-  routes: Array<{ name: string; path: string; sections: Array<Section> }>
+  routes: Array<{
+    name: string
+    path: string
+    sections: Array<Section>
+    viewport?: string
+  }>
 }
 
 const agency = JSON.parse(await readFile('agency.json', 'utf8')) as {
@@ -84,8 +89,19 @@ async function toBlock(section: Section) {
 }
 
 const docs: Array<IdentifiedSanityDocumentStub> = []
+const seenIds = new Set<string>()
 for (const route of manifest.routes) {
+  // A mobile route is a viewport variant of its desktop counterpart's page, not a page of its
+  // own — extracting it as one used to create a second "page-<slug>" document that overwrote
+  // (or was overwritten by) the desktop one, since they share the same path/slug.
+  if (route.viewport === 'mobile') continue
   const slug = slugFor(route.path)
+  const id = `page-${slug}`
+  if (seenIds.has(id))
+    throw new Error(
+      `duplicate page id "${id}" from route "${route.name}" (${route.path}); fix the route paths in design/manifest.json`,
+    )
+  seenIds.add(id)
   const blocks = []
   for (const s of route.sections) {
     if (CHROME.has(s.type)) continue
@@ -93,7 +109,7 @@ for (const route of manifest.routes) {
     if (block) blocks.push(block)
   }
   docs.push({
-    _id: `page-${slug}`,
+    _id: id,
     _type: 'page',
     title: slug === 'home' ? 'Home' : route.name,
     slug: { _type: 'slug', current: slug },
