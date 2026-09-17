@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "generate-routes": "tsr generate",
-    "build": "vite build",
+    "build": "vite build && node --experimental-strip-types scripts/static-data.ts",
     "preview": "pnpm build && wrangler dev",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",

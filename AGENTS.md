@@ -43,7 +43,8 @@ Documents in `src/sanity/schema/documents.ts`: `artist`, `artwork`, `exhibition`
 
 - Every clean URL reachable from `/` is prerendered to static HTML at build (`vite.config.ts` → `prerender.crawlLinks`) and served as an asset. Content edits redeploy via the Sanity webhook.
 - URLs with a query string (filters, months, pagination) and any slug the crawler missed render once at the edge and are cached by `src/server.ts` for the `s-maxage` set on the root route (60s, stale-while-revalidate a day). Never remove the root `headers()`; never make a route depend on per-request data (cookies, time of day) without a `Cache-Control: private` header on that route.
-- Internal links use the `A`/`NavLink`/`Button`/`Card` primitives (router `Link`, preloaded on hover). Plain `<a href="/…">` is a full page load and is wrong in this repo.
+- **In-app clicks must not wait on the network.** Every loader server function carries `.middleware([staticData])` (`src/lib/staticData.ts`): `pnpm build` writes each result to `/static-data/<hash>.json`, the browser reads that file instead of calling the Worker, and links preload it as they scroll into view. A new `createServerFn` used by a route loader gets the middleware too; the loader input must be the same on server and client (no `undefined` vs `{}` differences, no request-derived values). `src/server.ts`, `src/lib/staticData.ts` and `scripts/static-data.ts` are template-owned: wire them, don't edit them.
+- Internal links use the `A`/`NavLink`/`Button`/`Card` primitives (router `Link`, preloaded in the viewport; query-string links on intent). Plain `<a href="/…">` is a full page load and is wrong in this repo.
 - The browser bundle must not import `@sanity/client`: `urlFor` is config-only; server code imports the client from `src/sanity/client.ts` in server functions only.
 
 ## Data
