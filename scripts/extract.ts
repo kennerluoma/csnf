@@ -353,7 +353,7 @@ function snapLayout<T extends { gap: number; padding: Array<number> }>(
 }
 function snapRadius(node: string, r?: number | Array<number>) {
   if (r === undefined || fidelity === 'exact' || Array.isArray(r)) return r
-  const t = snapValue(r, RADII, 2, 0.2)
+  const t = r >= 500 ? 999 : snapValue(r, RADII, 2, 0.2) // anything ≥ 500 is a pill
   if (t !== r) snapped.push({ node, prop: 'radius', from: r, to: t })
   return t
 }
