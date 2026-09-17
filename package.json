@@ -24,6 +24,7 @@
     "shot": "node --env-file=.env --experimental-strip-types scripts/shot.ts",
     "inventory": "node --experimental-strip-types scripts/inventory.ts",
     "budget": "node --experimental-strip-types scripts/budget.ts",
+    "visual": "node --experimental-strip-types scripts/visual.ts",
     "audit": "pnpm audit --prod --audit-level high",
     "typegen": "node --experimental-strip-types scripts/typegen.ts"
   },

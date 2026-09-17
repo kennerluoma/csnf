@@ -4,6 +4,9 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # the visual-check comment
     env:
       # Prerendering reads the (public) dataset at build time. The id normally comes from the
       # committed .env.production; the secret, when present, wins (Dependabot PRs get no secrets).
@@ -26,4 +29,25 @@ jobs:
       # "Instant" is checked: JS size, and clicks that make no document or server-function request.
       - run: pnpm exec playwright install chromium --with-deps
       - run: pnpm budget
+      # The built pages next to the design renders. Words, not gates: this step cannot fail the
+      # build, and a .fig import (no renders) simply reports "no reference" everywhere.
+      - name: Visual check
+        continue-on-error: true # a crash in the report must not block a client's PR
+        run: pnpm visual
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: visual
+          path: |
+            design/shots
+            design/visual
+            design/visual-report.md
+          if-no-files-found: ignore
+      - name: Visual check comment
+        if: always() && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node --experimental-strip-types scripts/visual-comment.ts
       - run: pnpm audit --prod --audit-level high

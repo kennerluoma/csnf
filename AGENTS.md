@@ -15,7 +15,7 @@ This repo is a client site generated from the agency starter: TanStack Start + R
 - Each block is ONE folder in `src/blocks/<Name>/` containing:
   - `<Name>.schema.ts` · exports `<name>Schema` (a Sanity `object` type via `defineType`, with a one-sentence `description` saying when to use it) and `<name>Projection` (a GROQ conditional projection: `_type == "<name>" => { ...fields }`).
   - `<Name>.tsx` · exports the React component; its props are `BlockOf<'<name>'>` from `src/sanity/types.ts` (or `Resolved<'<name>'>` from `src/blocks/resolvers.ts` when it has a resolver), never a hand-written shape. Fields are `T | null`; handle null where the value is used.
-- Every block is registered twice: its schema + projection in `src/blocks/schemas.ts` (no React; the admin imports this) and its component in `src/blocks/registry.ts` (an import and a `case` in `renderBlock`). Both alphabetical. Then `pnpm typegen`, so the block joins the `AnyBlock` union. Nothing else needs editing to add a block.
+- Every block is registered twice: its schema + projection in `src/blocks/schemas.ts` (no React; the admin imports this) and its component in `src/blocks/registry.ts` (an import and a `case` in `renderBlock`). Both alphabetical. Then `pnpm typegen`, so the block joins the `AnyBlock` union. Nothing else needs editing to add a block. `RenderBlocks` wraps each block in a `contents` div carrying `data-block="<name>"`; that is how `pnpm visual` checks a page rendered the blocks the design mapped to it, so don't strip it.
 - Blocks are pure presentational components; they never fetch. A block that lists CMS documents gets its data from a resolver in `src/blocks/resolvers.ts` (block type → function returning the block's `data` prop; receives its own block member, URL search params and site settings). Add a resolver and its `case` in `resolveBlock` there when a block needs documents; drop documents without a slug with the guards in `src/sanity/guards.ts`.
 - Shared object types (`link`, `imageWithAlt`, `richText`, `seo`) live in `src/sanity/schema/objects.ts`. Reuse them; don't redefine link/image shapes inside blocks.
 
@@ -91,6 +91,7 @@ Anything not listed: prefer no dependency, then the smallest well-maintained one
 
 - `pnpm extract` · Figma → `design/manifest.json` + `design/renders/*.png` (needs `FIGMA_TOKEN`); `--from-file <figma.json>` offline; `--normalise design/manifest.json` re-runs the normaliser on a plugin-exported manifest; `--from-fig <file.fig> [--page NAME]` reads a local Figma export (no API; no renders)
 - `pnpm shot [url]` · Playwright screenshots of every route → `design/shots/*.png`
+- `pnpm visual` · the built site next to the design renders → `design/visual-report.md`, `design/visual.json` and side-by-side strips in `design/visual/` for the routes furthest from the design. Scores are words (`match` / `close` / `different` / `no reference`), never a gate; CI runs it on every PR and keeps one comment up to date. A `.fig` import has no renders, so every route there reads `no reference`
 - `pnpm seed` · write seed documents of every type to Sanity (needs `SANITY_WRITE_TOKEN`) · `pnpm pages` · write page documents from the manifest
 
 ## Lessons
