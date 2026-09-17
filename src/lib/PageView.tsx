@@ -10,7 +10,7 @@ export function PageView({ page }: { page: ResolvedPage | null }) {
           <Heading level={1}>No content yet</Heading>
           <Text muted>
             Create a <code>page</code> document with slug <code>home</code> in
-            the Sanity studio (<code>pnpm dev:studio</code>), or run{' '}
+            the Sanity admin (<code>pnpm dev:admin</code>), or run{' '}
             <code>pnpm seed</code>.
           </Text>
         </Container>

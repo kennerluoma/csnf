@@ -33,7 +33,7 @@
   },
   "overrides": [
     {
-      "files": ["scripts/**", "tools/**", "studio/**", "vite.config.ts"],
+      "files": ["scripts/**", "tools/**", "admin/**", "vite.config.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",
         "typescript/no-unsafe-assignment": "off",
@@ -49,8 +49,8 @@
   ],
   "ignorePatterns": [
     "dist/**",
-    "studio/.sanity/**",
-    "studio/dist/**",
+    "admin/.sanity/**",
+    "admin/dist/**",
     "src/routeTree.gen.ts"
   ]
 }

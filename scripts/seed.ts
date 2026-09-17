@@ -88,7 +88,7 @@ const docs: Array<IdentifiedSanityDocumentStub> = [
     dimensions: '70 × 50 cm',
     tags: ['paper', 'light'],
     featured: true,
-    description: rich('Seed artwork. Replace the images in the studio.'),
+    description: rich('Seed artwork. Replace the images in the admin.'),
   },
   {
     _id: 'artwork-tide-tables',
@@ -125,7 +125,7 @@ const docs: Array<IdentifiedSanityDocumentStub> = [
     artists: [ref('artist-mara-lindqvist'), ref('artist-tomas-reyes')],
     artworks: [ref('artwork-tide-tables'), ref('artwork-harbour-iv')],
     body: rich(
-      'A two-person exhibition. Seed content: edit or delete in the studio.',
+      'A two-person exhibition. Seed content: edit or delete in the admin.',
     ),
   },
   {
@@ -179,7 +179,7 @@ const docs: Array<IdentifiedSanityDocumentStub> = [
     slug: slug('cyanotype-workshop'),
     start: day(20, 10),
     end: day(20, 14),
-    location: 'Studio 2',
+    location: 'Admin 2',
     price: '€40',
     ticketUrl: 'https://example.com/tickets',
     series: ref('series-workshops'),
@@ -192,7 +192,7 @@ const docs: Array<IdentifiedSanityDocumentStub> = [
     date: day(-1),
     excerpt:
       'This site was generated from a Figma design. Here is what changed.',
-    body: rich('Seed post. Edit or delete in the studio.'),
+    body: rich('Seed post. Edit or delete in the admin.'),
     tags: ['news'],
   },
   {

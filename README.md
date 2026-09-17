@@ -1,8 +1,8 @@
 # Agency platform — Figma → React + Sanity, from a dashboard
 
-**The idea.** A designer finishes a site in Figma. You open the admin, create a project, paste the Figma link, click **Build**. Minutes later there's a live preview of a React site on Cloudflare, a Sanity studio seeded with the design's content, and a repo with a PR waiting for review. Change the design, click **Rebuild**. Ready to launch, add the domain from the same screen.
+**The idea.** A designer finishes a site in Figma. You open the admin, create a project, paste the Figma link, click **Build**. Minutes later there's a live preview of a React site on Cloudflare, a Sanity admin seeded with the design's content, and a repo with a PR waiting for review. Change the design, click **Rebuild**. Ready to launch, add the domain from the same screen.
 
-This repo is the **starter template** (a TanStack Start site + a Sanity Studio) and the platform docs. The admin app and build agent are not built yet.
+This repo is the **starter template** (a TanStack Start site + a admin) and the platform docs. The admin app and build agent are not built yet.
 
 ## Docs
 
@@ -20,14 +20,14 @@ This repo is the **starter template** (a TanStack Start site + a Sanity Studio) 
 ## Local development
 
 ```bash
-cp .env.example .env && cp studio/.env.example studio/.env   # fill in the Sanity project id
+cp .env.example .env && cp admin/.env.example admin/.env   # fill in the Sanity project id
 pnpm install
 pnpm dev          # site → http://localhost:3000
-pnpm dev:studio   # studio → http://localhost:3333
+pnpm dev:admin   # admin → http://localhost:3333
 ```
 
-Quality gates: `pnpm typecheck`, `pnpm lint`, `pnpm check`, `pnpm build`, `pnpm build:studio`.
+Quality gates: `pnpm typecheck`, `pnpm lint`, `pnpm check`, `pnpm build`, `pnpm build:admin`.
 
 ## Status
 
-2026-09-16 · starter scaffolded and deployed (site + studio on Workers). Extractor and screenshot scripts working. First local agent run produced PR #1 matching the Figma render. Not yet: `translate.yml`, the admin (desktop app + Worker API), provisioning, DNS.
+2026-09-16 · starter scaffolded and deployed (site + admin on Workers). Extractor and screenshot scripts working. First local agent run produced PR #1 matching the Figma render. Not yet: `translate.yml`, the admin (desktop app + Worker API), provisioning, DNS.

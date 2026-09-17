@@ -1,5 +1,5 @@
 packages:
-  - studio
+  - admin
 allowBuilds:
   esbuild: true
   lightningcss: true

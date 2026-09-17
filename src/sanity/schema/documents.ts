@@ -356,7 +356,7 @@ export const post = defineType({
   preview: { select: { title: 'title', subtitle: 'date', media: 'image' } },
 })
 
-/* Contact form submissions, written by /api/contact. Read-only in the studio. */
+/* Contact form submissions, written by /api/contact. Read-only in the admin. */
 export const submission = defineType({
   name: 'submission',
   title: 'Contact submission',
