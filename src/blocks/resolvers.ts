@@ -143,7 +143,13 @@ export const blockResolvers = {
             ? 'Sorry, sending failed. Please try again or email us directly.'
             : undefined,
       path,
-      turnstileSiteKey: process.env.TURNSTILE_SITE_KEY || undefined,
+      // A Vite env var, not process.env: this resolver also runs for every prerendered page at
+      // build time, and process.env.TURNSTILE_SITE_KEY was never set there (only pushed as a
+      // Worker secret afterwards), so the widget never rendered and the first submit from a
+      // prerendered page always failed Turnstile. import.meta.env.VITE_* is inlined at build
+      // time — the same mechanism VITE_SANITY_PROJECT_ID already relies on — so it is baked into
+      // prerendered HTML/static-data and the deployed Worker bundle alike.
+      turnstileSiteKey: import.meta.env.VITE_TURNSTILE_SITE_KEY || undefined,
     }
   },
 
