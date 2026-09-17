@@ -57,9 +57,14 @@ const argAfter = (flag: string) =>
     ? process.argv[process.argv.indexOf(flag) + 1]
     : undefined
 const fromFig = argAfter('--from-fig')
+// --from-bundle <figma-export.json>: what the Agency Figma plugin saves. The plugin only dumps the
+// file (REST-shaped node JSON, image bytes, frame renders); all the reading happens here, so a
+// plugin export, a .fig file and the REST API go through exactly the same extractor.
+const fromBundle = argAfter('--from-bundle')
+const local = !!fromFig || !!fromBundle
 const pageArg = argAfter('--page')
 const token = process.env.FIGMA_TOKEN ?? ''
-if (!token && !normaliseOnly && !fromFig)
+if (!token && !normaliseOnly && !local)
   throw new Error('FIGMA_TOKEN is not set')
 const agency = JSON.parse(await readFile('agency.json', 'utf8')) as {
   figmaFileKey: string
@@ -248,7 +253,7 @@ function summarize(n: FigmaNode, depth: number): unknown {
   const img = n.fills?.find((f) => f.type === 'IMAGE' && f.imageRef)
   if (img?.imageRef) {
     // .fig import: one asset per image (content hash); REST: one per node (export by id)
-    out.image = fromFig
+    out.image = local
       ? `design/assets/${img.imageRef.slice(0, 16)}.${figImageExt(img.imageRef)}`
       : `design/assets/${n.id.replace(':', '-')}.png`
     imageRefs.set(n.id, {
@@ -631,6 +636,56 @@ if (fromFig) {
     `fig: pages [${figImport.pages.join(', ')}] → using ${chosen ? chosen.map((p) => `"${p}"`).join(' + ') : 'all pages'} (pass --page to choose the main page)`,
   )
 }
+type Bundle = {
+  kind: string
+  version: number
+  file: { name: string; key?: string; lastModified?: string }
+  pages: Array<{ id: string; name: string; document: FigmaNode }>
+  components?: Record<string, { name: string; description: string }>
+  styles?: Record<string, { name: string; styleType: string }>
+  images: Array<{ hash: string; base64: string }>
+  renders: Array<{ id: string; base64: string }>
+}
+const bundleRenders = new Map<string, Buffer>()
+let bundleRendersWritten = 0
+if (fromBundle) {
+  const b = JSON.parse(await readFile(fromBundle, 'utf8')) as Bundle
+  if (b.kind !== 'agency-figma-export')
+    throw new Error(
+      `${fromBundle} is not an Agency Figma plugin export (re-export with the current plugin)`,
+    )
+  const names = b.pages.map((p) => p.name)
+  const main = pageArg ?? names.find((p) => /^finals?$/i.test(p.trim()))
+  const mobile = names.filter((p) => /mobile/i.test(p) && p !== main)
+  const chosen = main ? [main, ...mobile] : names
+  const images = new Map<string, () => Buffer>()
+  for (const i of b.images)
+    images.set(i.hash, () => Buffer.from(i.base64, 'base64'))
+  for (const r of b.renders)
+    bundleRenders.set(r.id, Buffer.from(r.base64, 'base64'))
+  figImport = {
+    file: {
+      name: b.file.name,
+      version: `plugin-v${b.version}`,
+      lastModified: b.file.lastModified ?? new Date().toISOString(),
+      styles: b.styles ?? {},
+      components: b.components ?? {},
+      document: {
+        id: '0:0',
+        name: 'Document',
+        type: 'DOCUMENT',
+        children: b.pages
+          .filter((p) => chosen.includes(p.name))
+          .map((p) => p.document),
+      },
+    },
+    images,
+    pages: names,
+  }
+  console.error(
+    `bundle: pages [${names.join(', ')}] → using ${chosen.map((p) => `"${p}"`).join(' + ')} · ${b.images.length} image(s), ${b.renders.length} render(s)`,
+  )
+}
 const file = (
   figImport
     ? figImport.file
@@ -638,7 +693,7 @@ const file = (
       ? JSON.parse(await readFile(fromFile, 'utf8'))
       : await api(`/files/${fileKey}`)
 ) as FigmaFile
-const offline = !!fromFile || !!fromFig
+const offline = !!fromFile || local
 
 const routes: Array<Record<string, unknown>> = []
 const isRouteFrame = (n: FigmaNode) =>
@@ -846,6 +901,15 @@ if (routeIds.length && !offline) {
       )
   }
 }
+// Plugin export: the frame renders came with the bundle.
+if (bundleRenders.size)
+  for (const r of routes) {
+    const bytes = bundleRenders.get(r.id as string)
+    if (bytes) {
+      await writeFile(r.render as string, bytes)
+      bundleRendersWritten++
+    }
+  }
 if (imageRefs.size && !offline) {
   const ids = [...imageRefs.keys()]
   const { images } = (await api(
@@ -878,14 +942,22 @@ if (figImport && imageRefs.size) {
     }
   }
   console.error(
-    `fig: wrote ${n} image asset(s); renders are NOT produced from a .fig — export frames as PNG into design/renders/`,
+    fromBundle
+      ? `bundle: wrote ${n} image asset(s) and ${bundleRendersWritten} render(s)`
+      : `fig: wrote ${n} image asset(s); renders are NOT produced from a .fig — export frames as PNG into design/renders/`,
   )
 }
 
 const manifest = {
   fileKey,
   fileName: file.name,
-  source: fromFig ? 'fig-file' : fromFile ? 'rest-file' : 'rest',
+  source: fromBundle
+    ? 'figma-plugin'
+    : fromFig
+      ? 'fig-file'
+      : fromFile
+        ? 'rest-file'
+        : 'rest',
   version: file.version,
   lastModified: file.lastModified,
   extractedAt: new Date().toISOString(),
