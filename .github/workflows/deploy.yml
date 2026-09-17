@@ -19,7 +19,7 @@ jobs:
       VITE_SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
       VITE_SANITY_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
