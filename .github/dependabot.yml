@@ -9,6 +9,10 @@ updates:
     schedule: { interval: weekly, day: monday }
     cooldown: { default-days: 7 }
     open-pull-requests-limit: 3
+    ignore:
+      # Types follow the Node version the Workers build runs on, not the newest Node.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       framework:
         {
