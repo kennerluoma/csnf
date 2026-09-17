@@ -12,7 +12,7 @@ export const richTextBlockSchema = defineType({
   ],
   preview: {
     select: { title: 'heading' },
-    prepare: ({ title }) => ({
+    prepare: ({ title }: { title?: string }) => ({
       title: title ?? 'Rich text',
       subtitle: 'Rich text',
     }),

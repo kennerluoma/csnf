@@ -20,7 +20,10 @@ export const postListSchema = defineType({
   ],
   preview: {
     select: { title: 'heading' },
-    prepare: ({ title }) => ({ title: title ?? 'News', subtitle: 'News list' }),
+    prepare: ({ title }: { title?: string }) => ({
+      title: title ?? 'News',
+      subtitle: 'News list',
+    }),
   },
 })
 

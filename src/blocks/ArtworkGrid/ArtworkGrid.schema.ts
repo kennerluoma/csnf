@@ -47,7 +47,7 @@ export const artworkGridSchema = defineType({
   ],
   preview: {
     select: { title: 'heading' },
-    prepare: ({ title }) => ({
+    prepare: ({ title }: { title?: string }) => ({
       title: title ?? 'Artwork grid',
       subtitle: 'Artwork grid',
     }),
