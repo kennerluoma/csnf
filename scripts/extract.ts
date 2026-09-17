@@ -266,25 +266,86 @@ function collectText(n: FigmaNode, acc: Record<string, string>) {
 }
 
 // ---- normaliser (fidelity: normalised) ----
-const snapped: Array<{ node: string; prop: string; from: number; to: number }> =
-  []
-const SPACE = [0, 2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128, 160]
-const RADII = [0, 2, 4, 8, 12, 16, 24, 999]
-const snapTo = (v: number, scale: Array<number>, tol = 0.15) => {
-  const best = scale.reduce((a, b) =>
-    Math.abs(b - v) < Math.abs(a - v) ? b : a,
+// Learns the design's own system instead of imposing a grid:
+//  1. base unit: the candidate (4/5/6/8/10) that the most spacing values are multiples of, weighted by use.
+//  2. anchors: the values the designer actually uses often (top of the usage histogram, multiples of base).
+//  3. snap: a value moves to the nearest anchor when it is within `tol` of it; otherwise to the nearest
+//     multiple of the base; a genuinely distinct value (far from every anchor) is kept as-is.
+//  4. consistency: sections of the same type share padding/gap — the mode wins for near values.
+// Every change is recorded in `snapped` so the PR body can list what was rounded.
+const snapped: Array<{
+  node: string
+  prop: string
+  from: number | string
+  to: number | string
+}> = []
+const RADII = [0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 32, 999]
+
+type Hist = Map<number, number>
+const bump = (h: Hist, v: number, n = 1) => h.set(v, (h.get(v) ?? 0) + n)
+
+function detectBase(h: Hist): number {
+  let best = 4
+  let bestScore = -1
+  for (const b of [4, 5, 6, 8, 10]) {
+    let score = 0
+    for (const [v, n] of h) if (v > 0 && v % b === 0) score += n * Math.log2(b)
+    if (score > bestScore) {
+      bestScore = score
+      best = b
+    }
+  }
+  return best
+}
+function anchorsOf(h: Hist, base: number): Array<number> {
+  const total = [...h.values()].reduce((a, b) => a + b, 0)
+  const sorted = [...h.entries()]
+    .filter(([v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+  const out: Array<number> = []
+  let acc = 0
+  for (const [v, n] of sorted) {
+    // anchors: frequent values (≥2 uses or part of the top 85% of usage) that sit on the base grid
+    if ((n >= 2 || acc / total < 0.85) && v % base === 0) out.push(v)
+    acc += n
+  }
+  return out.sort((a, b) => a - b)
+}
+function snapValue(
+  v: number,
+  anchors: Array<number>,
+  base: number,
+  tol = 0.12,
+): number {
+  if (v <= 0) return v
+  const near = anchors.reduce<number | undefined>(
+    (best, a) =>
+      best === undefined || Math.abs(a - v) < Math.abs(best - v) ? a : best,
+    undefined,
   )
-  return Math.abs(best - v) <= Math.max(2, v * tol) ? best : v
+  if (near !== undefined && Math.abs(near - v) <= Math.max(base / 2, v * tol))
+    return near
+  const grid = Math.round(v / base) * base
+  return Math.abs(grid - v) <= Math.max(2, v * tol) ? grid : v
+}
+
+let spacingBase = 4
+let spacingAnchors: Array<number> = []
+function learnSpacing() {
+  const h: Hist = new Map()
+  for (const [v, n] of spacing) bump(h, v, n)
+  spacingBase = detectBase(h)
+  spacingAnchors = anchorsOf(h, spacingBase)
 }
 function snapLayout<T extends { gap: number; padding: Array<number> }>(
   node: string,
   l?: T,
 ): T | undefined {
   if (!l || fidelity === 'exact') return l
-  const gap = snapTo(l.gap, SPACE)
+  const gap = snapValue(l.gap, spacingAnchors, spacingBase)
   if (gap !== l.gap) snapped.push({ node, prop: 'gap', from: l.gap, to: gap })
   const padding = l.padding.map((p, i) => {
-    const t = snapTo(p, SPACE)
+    const t = snapValue(p, spacingAnchors, spacingBase)
     if (t !== p) snapped.push({ node, prop: `padding[${i}]`, from: p, to: t })
     return t
   })
@@ -292,11 +353,69 @@ function snapLayout<T extends { gap: number; padding: Array<number> }>(
 }
 function snapRadius(node: string, r?: number | Array<number>) {
   if (r === undefined || fidelity === 'exact' || Array.isArray(r)) return r
-  const t = snapTo(r, RADII)
+  const t = snapValue(r, RADII, 2, 0.2)
   if (t !== r) snapped.push({ node, prop: 'radius', from: r, to: t })
   return t
 }
-/* Type scale: cluster sizes within 10%, keep the most-used size per cluster. */
+/* Sections of one type should agree: for each layout prop, values near the type's mode move to it. */
+function harmoniseSections(
+  sections: Array<{
+    id: string
+    type: string
+    layout?: { gap: number; padding: Array<number> }
+  }>,
+) {
+  if (fidelity === 'exact') return
+  const byType = new Map<string, Array<(typeof sections)[number]>>()
+  for (const s of sections)
+    if (s.layout) byType.set(s.type, [...(byType.get(s.type) ?? []), s])
+  for (const [, group] of byType) {
+    if (group.length < 2) continue
+    const props: Array<
+      [
+        string,
+        (l: { gap: number; padding: Array<number> }) => number,
+        (l: { gap: number; padding: Array<number> }, v: number) => void,
+      ]
+    > = [
+      ['gap', (l) => l.gap, (l, v) => (l.gap = v)],
+      ...[0, 1, 2, 3].map(
+        (
+          i,
+        ): [
+          string,
+          (l: { gap: number; padding: Array<number> }) => number,
+          (l: { gap: number; padding: Array<number> }, v: number) => void,
+        ] => [
+          `padding[${i}]`,
+          (l) => l.padding[i] ?? 0,
+          (l, v) => (l.padding[i] = v),
+        ],
+      ),
+    ]
+    for (const [name, get, set] of props) {
+      const h: Hist = new Map()
+      for (const s of group) bump(h, get(s.layout!))
+      const mode = [...h.entries()].sort((a, b) => b[1] - a[1])[0][0]
+      for (const s of group) {
+        const v = get(s.layout!)
+        if (
+          v !== mode &&
+          Math.abs(v - mode) <= Math.max(spacingBase, v * 0.2)
+        ) {
+          set(s.layout!, mode)
+          snapped.push({
+            node: s.id,
+            prop: `${name} (harmonised with other ${s.type})`,
+            from: v,
+            to: mode,
+          })
+        }
+      }
+    }
+  }
+}
+/* Type scale: cluster sizes within 10%, keep the most-used size per cluster; weights to the standard set. */
 function typeScale(
   entries: Array<{
     family: string
@@ -306,17 +425,14 @@ function typeScale(
   }>,
 ) {
   if (fidelity === 'exact') return entries
+  const usesOf = (sz: number) =>
+    entries.filter((e) => e.size === sz).reduce((n, e) => n + e.uses, 0)
   const sizes = [...new Set(entries.map((e) => e.size))].sort((a, b) => a - b)
   const map = new Map<number, number>()
   let cluster: Array<number> = []
   const flush = () => {
     if (!cluster.length) return
-    const keep = cluster.reduce((a, b) =>
-      entries.filter((e) => e.size === b).reduce((n, e) => n + e.uses, 0) >
-      entries.filter((e) => e.size === a).reduce((n, e) => n + e.uses, 0)
-        ? b
-        : a,
-    )
+    const keep = cluster.reduce((a, b) => (usesOf(b) > usesOf(a) ? b : a))
     for (const c of cluster) map.set(c, keep)
     cluster = []
   }
@@ -338,8 +454,8 @@ function typeScale(
       snapped.push({
         node: 'palette',
         prop: `font ${e.family} ${e.size}/${e.weight}`,
-        from: e.size,
-        to: size,
+        from: `${e.size}/${e.weight}`,
+        to: `${size}/${weight}`,
       })
     const k = `${e.family}/${size}/${weight}`
     const cur = merged.get(k) ?? { family: e.family, size, weight, uses: 0 }
@@ -348,7 +464,7 @@ function typeScale(
   }
   return [...merged.values()]
 }
-/* Colours: merge near-duplicates (simple RGB distance) into the most-used member. */
+/* Colours: merge near-duplicates into the most-used member. Distance in RGB; 12 ≈ "same grey to the eye". */
 function mergeColours(
   entries: Array<{ hex: string; uses: number; styleName?: string }>,
 ) {
@@ -362,14 +478,23 @@ function mergeColours(
     const near = out.find((o) => dist(o.hex, e.hex) < 12)
     if (near) {
       near.uses += e.uses
-      snapped.push({ node: 'palette', prop: `colour ${e.hex}`, from: 0, to: 0 })
+      snapped.push({
+        node: 'palette',
+        prop: 'colour',
+        from: e.hex,
+        to: near.hex,
+      })
     } else out.push({ ...e })
   }
   return out
 }
 
 // ---- main ----
-const file = (await api(`/files/${fileKey}`)) as {
+// --from-file <figma.json>: work from a saved REST response (offline / rate-limited); skips image export.
+const fromFile = process.argv.includes('--from-file')
+  ? process.argv[process.argv.indexOf('--from-file') + 1]
+  : undefined
+type FigmaFile = {
   name: string
   version: string
   lastModified: string
@@ -377,19 +502,27 @@ const file = (await api(`/files/${fileKey}`)) as {
   components: Record<string, { name: string; description: string }>
   document: FigmaNode
 }
+const file = (
+  fromFile
+    ? JSON.parse(await readFile(fromFile, 'utf8'))
+    : await api(`/files/${fileKey}`)
+) as FigmaFile
 
 const routes: Array<Record<string, unknown>> = []
+const isRouteFrame = (n: FigmaNode) =>
+  visible(n) &&
+  (n.type === 'FRAME' || n.type === 'SECTION' || n.type === 'COMPONENT')
+// Pass 1: palette over every route frame, then learn the spacing system from it.
+for (const page of file.document.children ?? [])
+  if (visible(page))
+    for (const frame of page.children ?? [])
+      if (isRouteFrame(frame)) collectPalette(frame, file.styles)
+learnSpacing()
+// Pass 2: routes and sections, snapped against the learned system.
 for (const page of file.document.children ?? []) {
   if (!visible(page)) continue
   for (const frame of page.children ?? []) {
-    if (
-      !visible(frame) ||
-      (frame.type !== 'FRAME' &&
-        frame.type !== 'SECTION' &&
-        frame.type !== 'COMPONENT')
-    )
-      continue
-    collectPalette(frame, file.styles)
+    if (!isRouteFrame(frame)) continue
     const name = frame.name.replace(/\s*@.*$/, '')
     const isMobile = /@mobile/i.test(frame.name)
     const path = /^(home|index|template)$/i.test(name) ? '/' : '/' + slug(name)
@@ -435,6 +568,7 @@ for (const page of file.document.children ?? []) {
         tree: summarize(s, 4),
       }
     })
+    harmoniseSections(sections)
     routes.push({
       id: frame.id,
       name: frame.name,
@@ -451,7 +585,7 @@ for (const page of file.document.children ?? []) {
 await mkdir('design/renders', { recursive: true })
 await mkdir('design/assets', { recursive: true })
 const routeIds = routes.map((r) => r.id as string)
-if (routeIds.length) {
+if (routeIds.length && !fromFile) {
   const { images } = (await api(
     `/images/${fileKey}?ids=${routeIds.join(',')}&format=png&scale=1`,
   )) as { images: Record<string, string> }
@@ -464,7 +598,7 @@ if (routeIds.length) {
       )
   }
 }
-if (imageRefs.size) {
+if (imageRefs.size && !fromFile) {
   const ids = [...imageRefs.keys()]
   const { images } = (await api(
     `/images/${fileKey}?ids=${ids.join(',')}&format=png&scale=2`,
@@ -498,13 +632,16 @@ const manifest = {
   routes,
   fidelity,
   normalisation: {
+    base: fidelity === 'normalised' ? spacingBase : null,
+    anchors: fidelity === 'normalised' ? spacingAnchors : [],
     rules:
       fidelity === 'normalised'
         ? [
-            'spacing → 4px scale (±15%)',
-            'radius → 0/2/4/8/12/16/24/999',
-            'type sizes clustered within 10%, weights → 400/500/600/700/900',
-            'colours within RGB distance 12 merged',
+            `spacing: base unit ${spacingBase}px learned from the design (candidates 4/5/6/8/10); values snap to the design's own frequent values (anchors) or the base grid within ~12%`,
+            'sections of the same type share gap/padding (mode wins within 20%)',
+            'radius → nearest of 0/2/4/6/8/10/12/16/20/24/32/999 within 20%',
+            'type sizes clustered within 10% (most-used wins), weights → 400/500/600/700/900',
+            'colours within RGB distance 12 merged into the most-used',
           ]
         : [],
     snapped,

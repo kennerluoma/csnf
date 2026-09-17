@@ -14,18 +14,22 @@ Designers don't work in exact values. One heading is 47px, another 48; letter-sp
 
 ## Fidelity modes
 
-A per-project setting, `fidelity: normalised | exact`, default **normalised**. Stored in `agency.json`, chosen in the New project form (and changeable on the Project screen), passed as `--fidelity` to the build, and read by both the extractor and the prompt.
+A per-project setting, `fidelity: normalised | exact`, default **normalised** (pixel-perfect is opt-in). Stored in `agency.json`, chosen in the New project form (and changeable on the Project screen), passed as `--fidelity` to the build, and read by both the extractor and the prompt.
 
 ### `normalised` (default)
 
-**Extractor**: snaps values before the agent sees them, and records what it snapped.
+**Extractor**: learns the design's own system, then snaps toward it, and records every change under `manifest.normalisation.snapped`.
 
-- Spacing and sizes → nearest of a 4px scale (4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128). Anything within 15% of a scale step snaps; larger gaps are kept and flagged.
-- Font sizes → a type scale derived from the palette: cluster sizes that are within 10% of each other, keep the most-used value per cluster (47/48/50 → 48). Weights snap to 400/500/600/700.
-- Letter-spacing → three buckets: tight (≤ -0.01em), normal, wide (≥ 0.04em). Line-height → 1.0/1.1/1.25/1.4/1.6.
-- Colours → merge anything within ΔE 3 (near-identical greys, off-whites) into the most-used member; keep the rest.
-- Radii → 0/4/8/12/16/999.
-- The manifest gets `normalisation: { rules, snapped: [{node, prop, from, to}] }` so the PR body can list what was rounded.
+- **Base unit**: among 4/5/6/8/10, the one most spacing values are multiples of (weighted by use). A designer on an 8pt system gets 8; one who eyeballs gets 4 or 5.
+- **Anchors**: the spacing values the designer uses often (≥2 uses or within the top 85% of usage) that sit on the base grid. These are the design's real scale, not a grid we impose.
+- **Snap**: a value moves to the nearest anchor when within ~12% (or half a base unit); otherwise to the nearest base multiple within the same tolerance; a genuinely distinct value far from every anchor stays as drawn.
+- **Consistency across sections**: sections of the same type share gap and padding; the mode wins for values within 20%. So three "Feature Grid" sections with 80/88/96 padding become one block with one padding.
+- **Type**: sizes cluster within 10% and the most-used size wins (47/48/50 → 48); weights snap to 400/500/600/700/900.
+- **Colours**: near-identical values (RGB distance < 12, i.e. off-whites and greys the eye can't separate) merge into the most-used member. Deliberate colours are kept.
+- **Radii**: nearest of a small set within 20%.
+- Text content is never touched. The manifest records `base`, `anchors`, the rules applied and each snapped value.
+
+Offline: `pnpm extract --from-file <saved figma.json>` runs the same pipeline on a saved REST response (no image export), for tuning thresholds without spending Figma quota.
 
 **Prompt**:
 
