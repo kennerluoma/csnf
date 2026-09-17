@@ -94,6 +94,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           rm -f plan-out.json agent-out.json dev.log
+          pnpm exec prettier --write . >/dev/null || true
           git config user.name agency
           git config user.email agency@users.noreply.github.com
           git add -A
