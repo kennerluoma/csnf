@@ -39,6 +39,32 @@ Documents in `src/sanity/schema/documents.ts`: `artist`, `artwork`, `exhibition`
 - All colours, fonts, type sizes, radii and section spacing are tokens in `src/styles/tokens.css` (Tailwind `@theme`). Add a token rather than a one-off value. Prefer semantic names (`--color-ink`, `--color-surface`, `--color-accent`) and reference them as utilities (`bg-surface`, `text-ink-muted`, `text-display`).
 - If a design needs a primitive that doesn't exist (e.g. `Quote`, `Stat`), add it to `src/ui/index.tsx` once, then use it from blocks. Restyle `Card` via tokens and props, never by forking it per block.
 
+## Standards (a direction, not a fence)
+
+These keep projects alike enough that a fix or a lesson from one applies to the next. Each has a reason; when a design genuinely needs something else, do that and say why in the PR.
+
+**Always on (installed, enforced by lint or the build)**
+
+- **Class names go through `cn()`** (`src/lib/cn.ts`: clsx + tailwind-merge). Never build a class string with a template literal or `+`; lint fails on it. Static strings stay plain strings.
+- **Interactive components start from Base UI** (`@base-ui/react`): dialog, popover, menu, select, tabs, accordion, tooltip, switch, checkbox, field, toast and so on. If Base UI has the component, wrap it as a primitive in `src/ui/index.tsx` and style it with tokens; don't hand-roll focus traps, roving tabindex or ARIA. Hand-written is fine only where Base UI has nothing (a lightbox's image logic, a calendar grid), and then keyboard and focus behaviour are part of the work.
+- **Accessibility is linted** (`eslint-plugin-jsx-a11y`): anything clickable is a `button` or a link, images have `alt`, form controls have labels.
+- **React Compiler is on, and checked.** Don't write `useMemo`, `useCallback` or `memo` for performance. The build prints `React Compiler: N modules compiled` and fails at 0; `pnpm check:compiler` lists the files. Components must be named, capitalised functions (`component: HomePage`, not an inline arrow), or the compiler and the hooks lint skip them.
+- **`useEffect` is the last resort.** Data comes from loaders, derived values are computed during render, reactions to user input live in the event handler, URL state lives in search params. An effect is right only for syncing with something outside React (a timer, a media query, an observer, a third-party widget); `src/lib/useNow.ts` is the model. Lint flags the common wrong uses.
+- **State lives in the URL** (router search params) so it is shareable, prerender/ISR friendly and survives reload. No client state library by default.
+
+**Reach for these when the design needs the behaviour (not installed; add, and note it in the PR)**
+
+| Need                            | Use                                                                                                                                                                         | Notes                                            |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Animation                       | CSS transitions and keyframes first; **Motion** (`motion`) when it needs orchestration, layout animation, gestures or scroll-linked values                                  | Respect `prefers-reduced-motion` either way      |
+| Forms beyond the contact form   | **React Hook Form**                                                                                                                                                         | Base UI `Field` for the markup and errors        |
+| Client state the URL can't hold | A **pmndrs** store (`zustand`, or `valtio` / `jotai` if it fits better)                                                                                                     | Rare; say what the URL couldn't express          |
+| Carousel / slider with drag     | No fixed choice: **Splide** has the better drag feel, **Embla** is smaller and headless. Pick one, say which and why in the PR; a person judges feel vs size on the preview | A prev/next viewer with no drag needs no library |
+| Maps                            | Rare on these sites. A static map image linking out is the default; **MapLibre GL** (lazy-loaded) if it must be interactive                                                 | No API-key SDKs without asking                   |
+| Dates                           | `src/lib/dates.ts` (Intl)                                                                                                                                                   | No date library                                  |
+
+Anything not listed: prefer no dependency, then the smallest well-maintained one, and flag it under "Things to check".
+
 ## Rendering (prerender or ISR, never per-request)
 
 - Every clean URL reachable from `/` is prerendered to static HTML at build (`vite.config.ts` → `prerender.crawlLinks`) and served as an asset. Content edits redeploy via the Sanity webhook.
@@ -78,7 +104,7 @@ Input: `design/manifest.json` (from Figma) and `design/renders/*.png`. Optional 
 
 ## Quality bar
 
-`pnpm typecheck && pnpm lint && pnpm build` must pass before a commit. Prettier formats everything (`pnpm format`). Run `pnpm inventory` after adding a block so the table below is current.
+`pnpm typecheck && pnpm lint && pnpm build` must pass before a commit; the build line `React Compiler: N modules compiled` must be there. Prettier formats everything (`pnpm format`). Run `pnpm inventory` after adding a block so the table below is current.
 
 ## Block inventory
 

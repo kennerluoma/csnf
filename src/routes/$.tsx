@@ -28,5 +28,9 @@ export const Route = createFileRoute('/$')({
       loaderData?.settings,
     ),
   }),
-  component: () => <PageView page={Route.useLoaderData().page} />,
+  component: CatchAllPage,
 })
+
+function CatchAllPage() {
+  return <PageView page={Route.useLoaderData().page} />
+}
