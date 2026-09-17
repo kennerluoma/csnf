@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { toIcs } from '#/lib/dates'
 import { client } from '#/sanity/client'
-import { siteSettingsQuery, upcomingEventsQuery } from '#/sanity/queries'
+import { siteSettingsQuery, upcomingEventsQuery } from '#/sanity/queries.gen'
 import type { EventCard, SiteSettings } from '#/sanity/types'
 
 /* Subscribable calendar of upcoming events (optionally one series: ?series=<slug>). */

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { toIcs } from '#/lib/dates'
 import { client } from '#/sanity/client'
-import { eventBySlugQuery, siteSettingsQuery } from '#/sanity/queries'
+import { eventBySlugQuery, siteSettingsQuery } from '#/sanity/queries.gen'
 import type { EventDoc, SiteSettings } from '#/sanity/types'
 
 /* One event as an .ics download ("Add to calendar"). */

@@ -16,7 +16,6 @@
     "deploy": "pnpm run build && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "check:compiler": "COMPILER_REPORT=1 vite build",
-    "sanity:typegen": "pnpm --filter studio typegen",
     "dev:studio": "pnpm --filter studio dev",
     "build:studio": "pnpm --filter studio build",
     "seed": "node --env-file=.env --experimental-strip-types scripts/seed.ts",
@@ -25,7 +24,8 @@
     "shot": "node --env-file=.env --experimental-strip-types scripts/shot.ts",
     "inventory": "node --experimental-strip-types scripts/inventory.ts",
     "budget": "node --experimental-strip-types scripts/budget.ts",
-    "audit": "pnpm audit --prod --audit-level high"
+    "audit": "pnpm audit --prod --audit-level high",
+    "typegen": "node --env-file=.env --experimental-strip-types scripts/typegen.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -39,6 +39,7 @@
     "@tanstack/react-router-devtools": "^1.167.0",
     "@tanstack/react-start": "^1.0.0",
     "clsx": "^2.1.1",
+    "groq": "^6.13.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwindcss": "^4.1.18"
@@ -56,13 +57,13 @@
     "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint-plugin-react-you-might-not-need-an-effect": "^1.0.2",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.0.0",
+    "oxlint-tsgolint": "^7.0.0",
     "playwright": "^1.63.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
-    "wrangler": "^4.70.0",
-    "oxlint": "^1.0.0",
-    "oxfmt": "^0.60.0",
-    "oxlint-tsgolint": "^7.0.0"
+    "wrangler": "^4.70.0"
   },
   "packageManager": "pnpm@11.21.0",
   "budgets": {

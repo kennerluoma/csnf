@@ -11,7 +11,7 @@ import {
   pageBySlugQuery,
   postBySlugQuery,
   siteSettingsQuery,
-} from '#/sanity/queries'
+} from '#/sanity/queries.gen'
 import type {
   ArtistDoc,
   ArtworkDoc,

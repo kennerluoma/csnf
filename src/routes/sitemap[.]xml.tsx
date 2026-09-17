@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { defaultIndexSlugs } from '#/lib/defaults'
 import { client } from '#/sanity/client'
-import { sitemapQuery } from '#/sanity/queries'
+import { sitemapQuery } from '#/sanity/queries.gen'
 
 type Entry = { slug: string; _updatedAt: string }
 

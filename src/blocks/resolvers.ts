@@ -12,7 +12,7 @@ import {
   exhibitionsQuery,
   postsQuery,
   upcomingEventsQuery,
-} from '#/sanity/queries'
+} from '#/sanity/queries.gen'
 import type {
   AnyBlock,
   ArtistRef,

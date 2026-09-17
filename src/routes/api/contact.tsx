@@ -6,7 +6,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { createClient } from '@sanity/client'
 import { apiVersion, dataset, projectId } from '#/sanity/env'
 import { client } from '#/sanity/client'
-import { siteSettingsQuery } from '#/sanity/queries'
+import { siteSettingsQuery } from '#/sanity/queries.gen'
 import type { SiteSettings } from '#/sanity/types'
 
 const redirect = (page: string, q: string) =>
