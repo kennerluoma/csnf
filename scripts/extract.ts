@@ -627,10 +627,22 @@ let figImport: FigImport | undefined
 if (fromFig) {
   figImport = figToRest(fromFig, { page: pageArg })
   const main =
-    pageArg ?? figImport.pages.find((p) => /^finals?$/i.test(p.trim()))
+    pageArg ??
+    figImport.pages.find((p) =>
+      /^(finals?|site|website|web|pages|desktop|designs?)$/i.test(p.trim()),
+    )
   // mobile pages ride along: their frames become the mobile viewport of the same routes
   const mobile = figImport.pages.filter((p) => /mobile/i.test(p) && p !== main)
-  const chosen = main ? [main, ...mobile] : undefined
+  // No obvious main page: drop the ones that are never the site (covers, component sheets,
+  // sketches, separators, Figma's internal canvas) rather than turning them into routes.
+  const junk =
+    /^(cover|thumbnail|components?|symbols?|styles?|sketch(es)?|archive|old|wip|playground|moodboard|inspiration|internal only canvas|[-–—_\s]+)$/i
+  const kept = figImport.pages.filter((p) => !junk.test(p.trim()))
+  const chosen = main
+    ? [main, ...mobile]
+    : kept.length && kept.length < figImport.pages.length
+      ? kept
+      : undefined
   if (chosen) figImport = figToRest(fromFig, { pages: chosen })
   console.error(
     `fig: pages [${figImport.pages.join(', ')}] → using ${chosen ? chosen.map((p) => `"${p}"`).join(' + ') : 'all pages'} (pass --page to choose the main page)`,
