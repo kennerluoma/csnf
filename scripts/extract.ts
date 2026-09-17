@@ -276,10 +276,10 @@ const snapTo = (v: number, scale: Array<number>, tol = 0.15) => {
   )
   return Math.abs(best - v) <= Math.max(2, v * tol) ? best : v
 }
-function snapLayout(
+function snapLayout<T extends { gap: number; padding: Array<number> }>(
   node: string,
-  l?: { gap: number; padding: [number, number, number, number] },
-) {
+  l?: T,
+): T | undefined {
   if (!l || fidelity === 'exact') return l
   const gap = snapTo(l.gap, SPACE)
   if (gap !== l.gap) snapped.push({ node, prop: 'gap', from: l.gap, to: gap })
