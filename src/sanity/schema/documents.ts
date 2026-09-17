@@ -356,7 +356,9 @@ export const post = defineType({
   preview: { select: { title: 'title', subtitle: 'date', media: 'image' } },
 })
 
-/* Contact form submissions, written by /api/contact. Read-only in the admin. */
+/* Contact form submissions, written by /api/contact with a dotted `submissions.<uuid>` _id:
+   the dataset is public (aclMode: 'public'), and Sanity hides namespaced/dotted ids from
+   unauthenticated reads while Studio users with a token can still see them. Read-only in the admin. */
 export const submission = defineType({
   name: 'submission',
   title: 'Contact submission',
