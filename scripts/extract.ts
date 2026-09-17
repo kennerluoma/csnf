@@ -5,6 +5,8 @@
    Its direct children are sections. A section's type is its layer name, PascalCased,
    with an optional "Section /" prefix stripped. Text/image roles come from layer names. */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { figToRest } from './fig.ts'
+import type { FigImport } from './fig.ts'
 
 type FigmaNode = {
   id: string
@@ -47,8 +49,18 @@ type FigmaNode = {
 const normaliseOnly = process.argv.includes('--normalise')
   ? process.argv[process.argv.indexOf('--normalise') + 1]
   : undefined
+// --from-fig <file.fig> [--page <name>]: read a local .fig export (no API, no quota). Frames on the
+// chosen page (default: a page named FINAL/Final, else every page) are routes; repeated frame names
+// fold into one route with `states`. No renders: export frames as PNG into design/renders/ by hand.
+const argAfter = (flag: string) =>
+  process.argv.includes(flag)
+    ? process.argv[process.argv.indexOf(flag) + 1]
+    : undefined
+const fromFig = argAfter('--from-fig')
+const pageArg = argAfter('--page')
 const token = process.env.FIGMA_TOKEN ?? ''
-if (!token && !normaliseOnly) throw new Error('FIGMA_TOKEN is not set')
+if (!token && !normaliseOnly && !fromFig)
+  throw new Error('FIGMA_TOKEN is not set')
 const agency = JSON.parse(await readFile('agency.json', 'utf8')) as {
   figmaFileKey: string
 }
@@ -133,7 +145,7 @@ const lint: Array<{
 }> = []
 const imageRefs = new Map<
   string,
-  { nodeId: string; role: string; alt: string }
+  { nodeId: string; role: string; alt: string; hash?: string }
 >()
 
 function solidFill(n: FigmaNode) {
@@ -235,11 +247,15 @@ function summarize(n: FigmaNode, depth: number): unknown {
   if (n.type === 'INSTANCE') out.componentId = n.componentId
   const img = n.fills?.find((f) => f.type === 'IMAGE' && f.imageRef)
   if (img?.imageRef) {
-    out.image = `design/assets/${n.id.replace(':', '-')}.png`
+    // .fig import: one asset per image (content hash); REST: one per node (export by id)
+    out.image = fromFig
+      ? `design/assets/${img.imageRef.slice(0, 16)}.${figImageExt(img.imageRef)}`
+      : `design/assets/${n.id.replace(':', '-')}.png`
     imageRefs.set(n.id, {
       nodeId: n.id,
       role: role(n.name.replace(/^image\//i, '')),
       alt: '',
+      hash: img.imageRef,
     })
   }
   if (depth > 0 && n.children?.length)
@@ -255,11 +271,15 @@ function collectText(n: FigmaNode, acc: Record<string, string>) {
   if (!visible(n)) return
   if (n.type === 'TEXT' && n.characters?.trim()) {
     let key = role(n.name)
-    if (!key || key === role(n.characters)) key = 'text'
+    if (!key || key === role(n.characters)) {
+      // auto-named layer (name = its text): guess the role from length
+      const len = n.characters.trim().length
+      key = len > 160 ? 'body' : len <= 40 ? 'label' : 'text'
+    }
     let k = key
     for (let i = 2; k in acc; i++) k = `${key}${i}`
     acc[k] = n.characters
-    if (key === 'text')
+    if (key === 'text' || key === 'body' || key === 'label')
       lint.push({
         level: 'info',
         node: n.id,
@@ -598,11 +618,23 @@ type FigmaFile = {
   components: Record<string, { name: string; description: string }>
   document: FigmaNode
 }
+let figImport: FigImport | undefined
+if (fromFig) {
+  figImport = figToRest(fromFig, { page: pageArg })
+  const auto = pageArg ?? figImport.pages.find((p) => /^final$/i.test(p.trim()))
+  if (!pageArg && auto) figImport = figToRest(fromFig, { page: auto })
+  console.error(
+    `fig: pages [${figImport.pages.join(', ')}] → using ${auto ? `"${auto}"` : 'all pages'} (pass --page to choose)`,
+  )
+}
 const file = (
-  fromFile
-    ? JSON.parse(await readFile(fromFile, 'utf8'))
-    : await api(`/files/${fileKey}`)
+  figImport
+    ? figImport.file
+    : fromFile
+      ? JSON.parse(await readFile(fromFile, 'utf8'))
+      : await api(`/files/${fileKey}`)
 ) as FigmaFile
+const offline = !!fromFile || !!fromFig
 
 const routes: Array<Record<string, unknown>> = []
 const isRouteFrame = (n: FigmaNode) =>
@@ -614,22 +646,42 @@ for (const page of file.document.children ?? [])
     for (const frame of page.children ?? [])
       if (isRouteFrame(frame)) collectPalette(frame, file.styles)
 learnSpacing()
+const figExtCache = new Map<string, string>()
+function figImageExt(hash: string) {
+  let ext = figExtCache.get(hash)
+  if (!ext) {
+    const b = figImport?.images.get(hash)?.()
+    ext = b && b[0] === 0xff && b[1] === 0xd8 ? 'jpg' : 'png'
+    figExtCache.set(hash, ext)
+  }
+  return ext
+}
+
 // Pass 2: routes and sections, snapped against the learned system.
+// Frames that share a (normalised) name are one route: the first is canonical, the rest are `states`
+// (unstructured files keep one frame per screen state). A frame is a `page` when its children stack
+// vertically and span the width; otherwise a `screen` (app-like layout: the tree is the design).
+const routeKey = (name: string) =>
+  name
+    .replace(/\s*@.*$/, '')
+    .replace(/\s*[–-]\s*(alt|v\d+|copy|final|new|old|option|variant).*$/i, '')
+    .replace(/\s*\(.*\)\s*$/, '')
+    .replace(/\s+\d+$/, '')
+    .trim()
+    .toLowerCase()
+const routeIndex = new Map<string, number>()
 for (const page of file.document.children ?? []) {
   if (!visible(page)) continue
   for (const frame of page.children ?? []) {
     if (!isRouteFrame(frame)) continue
     const name = frame.name.replace(/\s*@.*$/, '')
-    const isMobile = /@mobile/i.test(frame.name)
-    const path = /^(home|index|template)$/i.test(name) ? '/' : '/' + slug(name)
     const width = Math.round(frame.absoluteBoundingBox?.width ?? 0)
-    if (!isMobile && width !== 1440)
-      lint.push({
-        level: 'warn',
-        node: frame.id,
-        name: frame.name,
-        msg: `route frame is ${width}px wide; contract expects 1440`,
-      })
+    const isMobile =
+      /@mobile/i.test(frame.name) || /mobile/i.test(page.name) || width < 600
+    const key = `${isMobile ? 'm:' : ''}${routeKey(name)}`
+    const path = /^(home|index|template|landing|start)$/i.test(routeKey(name))
+      ? '/'
+      : '/' + slug(routeKey(name))
     // Sections are direct children, sorted top→bottom by position (Figma stores children bottom-up in z-order).
     const kids = (frame.children ?? [])
       .filter(visible)
@@ -637,7 +689,52 @@ for (const page of file.document.children ?? []) {
         (a, b) =>
           (a.absoluteBoundingBox?.y ?? 0) - (b.absoluteBoundingBox?.y ?? 0),
       )
-    const sections = kids.map((s) => {
+    const fw = frame.absoluteBoundingBox?.width ?? 1
+    const fh = frame.absoluteBoundingBox?.height ?? 1
+    const wide = kids.filter(
+      (k) => (k.absoluteBoundingBox?.width ?? 0) >= fw * 0.6,
+    )
+    const stacked = (() => {
+      let lastBottom = -Infinity
+      let ok = 0
+      for (const k of wide) {
+        const b = k.absoluteBoundingBox!
+        if (b.y >= lastBottom - 8) ok++
+        lastBottom = Math.max(lastBottom, b.y + b.height)
+      }
+      return ok
+    })()
+    const kind: 'page' | 'screen' =
+      wide.length >= 2 && stacked >= wide.length * 0.8 ? 'page' : 'screen'
+    const existing = routeIndex.get(key)
+    if (existing !== undefined) {
+      // a repeated screen: keep its text + shallow tree as a state of the canonical route
+      const text: Record<string, string> = {}
+      collectText(frame, text)
+      const route = routes[existing]
+      ;(route.states as Array<unknown>).push({
+        id: frame.id,
+        name: frame.name,
+        text,
+        tree: summarize(frame, 2),
+      })
+      continue
+    }
+    if (!isMobile && width !== 1440)
+      lint.push({
+        level: 'warn',
+        node: frame.id,
+        name: frame.name,
+        msg: `route frame is ${width}px wide; contract expects 1440`,
+      })
+    if (kind === 'screen')
+      lint.push({
+        level: 'info',
+        node: frame.id,
+        name: frame.name,
+        msg: 'frame is a screen (no vertical section stack); mapped to one section with the full tree',
+      })
+    const sectionOf = (s: FigmaNode) => {
       const text: Record<string, string> = {}
       collectText(s, text)
       if (!s.layoutMode || s.layoutMode === 'NONE')
@@ -663,16 +760,67 @@ for (const page of file.document.children ?? []) {
         text,
         tree: summarize(s, 4),
       }
-    })
+    }
+    // Screens: chrome instances (nav/header/footer) stay their own sections; everything else is one
+    // "Screen" section carrying the full tree, with the big regions listed for orientation.
+    const isChrome = (k: FigmaNode) => /nav|header|footer|menu/i.test(k.name)
+    const sections =
+      kind === 'page'
+        ? kids.map(sectionOf)
+        : [
+            ...kids.filter(isChrome).map(sectionOf),
+            {
+              ...sectionOf({
+                ...frame,
+                name: `${name} screen`,
+                children: kids.filter((k) => !isChrome(k)),
+              }),
+              id: frame.id,
+              type: 'Screen',
+              regions: kids
+                .filter((k) => !isChrome(k))
+                .filter((k) => {
+                  const b = k.absoluteBoundingBox
+                  return b && b.width * b.height >= fw * fh * 0.15
+                })
+                .map((k) => ({
+                  id: k.id,
+                  name:
+                    k.type === 'TEXT'
+                      ? `text: ${k.name.slice(0, 40)}${k.name.length > 40 ? '…' : ''}`
+                      : k.name,
+                  box: [
+                    Math.round(
+                      ((k.absoluteBoundingBox!.x -
+                        frame.absoluteBoundingBox!.x) /
+                        fw) *
+                        100,
+                    ),
+                    Math.round(
+                      ((k.absoluteBoundingBox!.y -
+                        frame.absoluteBoundingBox!.y) /
+                        fh) *
+                        100,
+                    ),
+                    Math.round((k.absoluteBoundingBox!.width / fw) * 100),
+                    Math.round((k.absoluteBoundingBox!.height / fh) * 100),
+                  ],
+                })),
+            },
+          ]
     harmoniseSections(sections)
+    routeIndex.set(key, routes.length)
     routes.push({
       id: frame.id,
       name: frame.name,
       path,
+      kind,
+      page: page.name,
       viewport: isMobile ? 'mobile' : 'desktop',
       width,
       render: `design/renders/${slug(frame.name)}.png`,
       sections,
+      states: [],
     })
   }
 }
@@ -681,7 +829,7 @@ for (const page of file.document.children ?? []) {
 await mkdir('design/renders', { recursive: true })
 await mkdir('design/assets', { recursive: true })
 const routeIds = routes.map((r) => r.id as string)
-if (routeIds.length && !fromFile) {
+if (routeIds.length && !offline) {
   const { images } = (await api(
     `/images/${fileKey}?ids=${routeIds.join(',')}&format=png&scale=1`,
   )) as { images: Record<string, string> }
@@ -694,7 +842,7 @@ if (routeIds.length && !fromFile) {
       )
   }
 }
-if (imageRefs.size && !fromFile) {
+if (imageRefs.size && !offline) {
   const ids = [...imageRefs.keys()]
   const { images } = (await api(
     `/images/${fileKey}?ids=${ids.join(',')}&format=png&scale=2`,
@@ -709,9 +857,31 @@ if (imageRefs.size && !fromFile) {
   }
 }
 
+// .fig import: image fills come straight out of the zip, one file per content hash.
+if (figImport && imageRefs.size) {
+  let n = 0
+  const done = new Set<string>()
+  for (const ref of imageRefs.values()) {
+    if (!ref.hash || done.has(ref.hash)) continue
+    done.add(ref.hash)
+    const bytes = figImport.images.get(ref.hash)?.()
+    if (bytes) {
+      await writeFile(
+        `design/assets/${ref.hash.slice(0, 16)}.${figImageExt(ref.hash)}`,
+        bytes,
+      )
+      n++
+    }
+  }
+  console.error(
+    `fig: wrote ${n} image asset(s); renders are NOT produced from a .fig — export frames as PNG into design/renders/`,
+  )
+}
+
 const manifest = {
   fileKey,
   fileName: file.name,
+  source: fromFig ? 'fig-file' : fromFile ? 'rest-file' : 'rest',
   version: file.version,
   lastModified: file.lastModified,
   extractedAt: new Date().toISOString(),

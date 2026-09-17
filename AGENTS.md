@@ -46,7 +46,7 @@ Documents in `src/sanity/schema/documents.ts`: `artist`, `artwork`, `exhibition`
 
 ## Scripts
 
-- `pnpm extract` · Figma → `design/manifest.json` + `design/renders/*.png` (needs `FIGMA_TOKEN`); `--from-file <figma.json>` offline; `--normalise design/manifest.json` re-runs the normaliser on a plugin-exported manifest
+- `pnpm extract` · Figma → `design/manifest.json` + `design/renders/*.png` (needs `FIGMA_TOKEN`); `--from-file <figma.json>` offline; `--normalise design/manifest.json` re-runs the normaliser on a plugin-exported manifest; `--from-fig <file.fig> [--page NAME]` reads a local Figma export (no API; no renders)
 - `pnpm shot [url]` · Playwright screenshots of every route → `design/shots/*.png`
 - `pnpm seed` · write seed documents of every type to Sanity (needs `SANITY_WRITE_TOKEN`) · `pnpm pages` · write page documents from the manifest
 

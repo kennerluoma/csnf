@@ -11,6 +11,7 @@ design/plan.md contains:
    - Sections with inputs map to `contactForm` or `newsletterSignup`.
    - Only propose a new block when no inventory block fits structurally (different children or layout direction). Name it, list its fields (from the section's named text/image layers; repeated child instances become an array), and which primitives it composes.
    - In normalised fidelity (agency.json), two sections that differ only in snapped values, text or child count are the same block.
+   - Routes with `kind: screen` are app-like layouts, not stacked pages: plan them as one route component each (which primitives, which content types feed it, which `regions` map to which part), and list what each `state` changes (hover, selection, open menu). Never plan a block per screen state.
 2. A "Tokens" list: semantic names for every palette colour, the font families, the type scale (max 6 styles), radii and section spacing, each with the manifest value it comes from.
 3. A "Pages" list: every route → page slug → ordered block keys; plus any nav targets that need an empty page document.
 4. "Rebuild" (only when design/manifest.prev.json exists): the sections whose content, layout or tree changed, were added, or were removed, from diffing the two manifests. Sections not listed will not be touched.
