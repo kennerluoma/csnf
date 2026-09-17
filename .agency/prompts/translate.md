@@ -1,5 +1,7 @@
 You are translating a Figma design into this repo. Read AGENTS.md first (including the block inventory at the bottom) and .agency/lessons.md (rules learned from previous sites), and follow both exactly.
 
+**Finish the site; decide, don't ask.** The result of this run is a complete, working site and CMS, not a draft with a list of questions: every content type has styled index and detail routes and seeded documents, every nav item leads somewhere real, every drawn control does what a visitor would expect (a search icon searches, an email field subscribes, a filter filters). Where the design is silent, take the decision a finished site of this kind would take, implement it, and record it in the PR body under "Things to check" as `decision · why · where to change it`. That section is a log of decisions for review, not a list of questions. Ask only what code cannot settle (a licence, a missing legal fact).
+
 Inputs
 
 - design/manifest.json — the design: routes → sections (typed, with text, images, layout, a compact `tree` of child layers), plus a palette of every colour/font/radius/spacing seen. Sections named Header/Footer/Nav are site chrome, not page blocks: implement them as layout components in src/lib driven by the `siteSettings` document, rendered in `__root.tsx` around the page.
