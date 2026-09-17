@@ -339,8 +339,8 @@ export function figToRest(
         for (const so of (n.symbolData?.symbolOverrides ?? []) as Array<
           Record<string, unknown> & { guidPath?: { guids?: Array<Guid> } }
         >) {
-          const path = so.guidPath?.guids ?? []
-          const last = path[path.length - 1]
+          const guids = so.guidPath?.guids ?? []
+          const last = guids.at(-1)
           if (!last) continue
           const { guidPath: _gp, ...fields } = so
           ov.set(gid(last), {
