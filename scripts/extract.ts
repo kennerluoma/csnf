@@ -47,6 +47,11 @@ if (!token) throw new Error('FIGMA_TOKEN is not set')
 const agency = JSON.parse(await readFile('agency.json', 'utf8')) as {
   figmaFileKey: string
 }
+const fidelity: 'normalised' | 'exact' =
+  process.env.AGENCY_FIDELITY === 'exact' ||
+  (agency as { fidelity?: string }).fidelity === 'exact'
+    ? 'exact'
+    : 'normalised'
 const fileKey = agency.figmaFileKey
 const api = async (path: string): Promise<any> => {
   // Figma rate-limits bursts (429). Retry with backoff, honouring Retry-After, for up to ~3 minutes.
@@ -282,7 +287,7 @@ function snapLayout(
     const t = snapTo(p, SPACE)
     if (t !== p) snapped.push({ node, prop: `padding[${i}]`, from: p, to: t })
     return t
-  }) as [number, number, number, number]
+  })
   return { ...l, gap, padding }
 }
 function snapRadius(node: string, r?: number | Array<number>) {
