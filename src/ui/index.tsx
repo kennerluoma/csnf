@@ -1,7 +1,7 @@
 /* Primitives. The ONLY place raw Tailwind utilities live. Blocks compose these. */
 import { Fragment } from 'react'
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react'
-import { Link as RouterLink } from '@tanstack/react-router'
+import { Link as RouterLink, defaultParseSearch } from '@tanstack/react-router'
 import { PortableText } from '@portabletext/react'
 import type { PortableTextBlock } from '@portabletext/react'
 import { cn } from '#/lib/cn'
@@ -15,16 +15,25 @@ const isInternal = (href: string) =>
   !/^\/(api|ics)\//.test(href) &&
   !/\.[a-z0-9]{2,4}(\?|#|$)/i.test(href)
 
+/* `to` does not parse a query string, so the href is split first; `?event=…` selection links stay
+   router links. Active (aria-current) only on an exact path + search match, never a prefix.
+   `resetScroll={false}` keeps the scroll position when selecting an item in place. */
 export function A({
   href,
   className,
   children,
+  resetScroll,
   ...rest
-}: ComponentPropsWithoutRef<'a'> & { href: string }) {
-  if (isInternal(href))
+}: ComponentPropsWithoutRef<'a'> & { href: string; resetScroll?: boolean }) {
+  if (isInternal(href)) {
+    const url = new URL(href, 'http://local')
     return (
       <RouterLink
-        to={href}
+        to={url.pathname}
+        search={defaultParseSearch(url.search)}
+        hash={url.hash.slice(1) || undefined}
+        activeOptions={{ exact: true, includeSearch: true }}
+        resetScroll={resetScroll}
         // Clean URLs have static data, so they preload as soon as they scroll into view (router
         // default). Query-string links render on the Worker: wait for intent.
         preload={href.includes('?') ? 'intent' : undefined}
@@ -34,6 +43,7 @@ export function A({
         {children}
       </RouterLink>
     )
+  }
   const external = /^https?:\/\//.test(href)
   return (
     <a
