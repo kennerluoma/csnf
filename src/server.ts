@@ -10,6 +10,7 @@ import {
   defineHandlerCallback,
 } from '@tanstack/react-start/server'
 import { collected } from '#/lib/staticData'
+import { extendForStaleWindow, isrStatus, parsePolicy } from '#/lib/isr-cache'
 
 const start = createStartHandler(
   defineHandlerCallback((ctx) => defaultStreamHandler(ctx)),
@@ -18,22 +19,37 @@ const start = createStartHandler(
 type Ctx = { waitUntil?: (p: Promise<unknown>) => void }
 type Env = { ASSETS?: { fetch: (r: Request) => Promise<Response> } }
 const STAMP = 'x-isr-rendered-at'
-
-function cachePolicy(res: Response) {
-  const cc = res.headers.get('cache-control') ?? ''
-  if (!/public/.test(cc)) return null
-  const sMax = Number(/s-maxage=(\d+)/.exec(cc)?.[1] ?? 0)
-  const swr = Number(/stale-while-revalidate=(\d+)/.exec(cc)?.[1] ?? 0)
-  return sMax > 0 ? { sMax, swr } : null
-}
+// The Workers Cache API only honours s-maxage for its own expiry and has no idea what
+// stale-while-revalidate means, so a stored entry whose Cache-Control still says `s-maxage=60`
+// becomes a cache miss after 60s regardless of the swr window — the "stale: serve now, refresh in
+// the background" branch below was never reachable. The entry's stored Cache-Control is rewritten
+// to survive the full sMax+swr window instead; the *original* policy (what callers were actually
+// promised) travels in this header and is restored on every reply.
+const POLICY_HEADER = 'x-isr-policy'
 
 async function render(request: Request) {
   const res = await start(request)
-  if (request.method !== 'GET' || !res.ok || !cachePolicy(res))
-    return { res, store: false }
+  const cacheControl = res.headers.get('cache-control')
+  const policy =
+    request.method === 'GET' && res.ok ? parsePolicy(cacheControl) : null
+  if (!policy || !cacheControl) return { res, store: false }
   const copy = new Response(res.body, res)
   copy.headers.set(STAMP, String(Date.now()))
+  copy.headers.set(POLICY_HEADER, cacheControl)
+  copy.headers.set('cache-control', extendForStaleWindow(cacheControl, policy))
   return { res: copy, store: true }
+}
+
+/* Restore the Cache-Control callers were actually promised (not the extended one an entry is
+   stored under), drop the internal bookkeeping headers, and stamp how this reply was served. */
+function reply(res: Response, isrStatus: string) {
+  const out = new Response(res.body, res)
+  const original = out.headers.get(POLICY_HEADER)
+  if (original) out.headers.set('cache-control', original)
+  out.headers.delete(POLICY_HEADER)
+  out.headers.delete(STAMP)
+  out.headers.set('x-isr', isrStatus)
+  return out
 }
 
 async function fetch(
@@ -69,20 +85,25 @@ async function fetch(
     url.pathname.startsWith('/_serverFn')
   )
     return start(request)
-  const key = new Request(request.url, { method: 'GET' })
+  // The cache key carries the build id: once a stale entry can actually be served (below), it can
+  // outlive its own deploy by up to the swr window, and day-old HTML must not reference hashed
+  // /assets/* files a newer deploy already removed. A new deploy's first request for a URL is
+  // therefore always a miss, never a hit against a previous build's entry.
+  const key = new Request(`${request.url}#${__BUILD_ID__}`, { method: 'GET' })
   const hit = await cache.match(key)
   if (hit) {
-    const policy = cachePolicy(hit)
+    const policy = parsePolicy(hit.headers.get(POLICY_HEADER))
     const age = (Date.now() - Number(hit.headers.get(STAMP) ?? 0)) / 1000
-    if (policy && age <= policy.sMax) return withHeader(hit, 'x-isr', 'hit')
-    if (policy && age <= policy.sMax + policy.swr) {
-      // stale: serve now, refresh in the background
+    const status = isrStatus(policy, age)
+    if (status === 'fresh') return reply(hit, 'hit')
+    if (status === 'stale') {
+      // serve now, refresh in the background
       const refresh = render(request).then(({ res, store }) =>
         store ? cache.put(key, res.clone()) : undefined,
       )
       if (ctx?.waitUntil) ctx.waitUntil(refresh)
       else void refresh
-      return withHeader(hit, 'x-isr', 'stale')
+      return reply(hit, 'stale')
     }
   }
   const { res, store } = await render(request)
@@ -91,13 +112,7 @@ async function fetch(
     if (ctx?.waitUntil) ctx.waitUntil(put)
     else await put
   }
-  return withHeader(res, 'x-isr', 'miss')
-}
-
-function withHeader(res: Response, name: string, value: string) {
-  const out = new Response(res.body, res)
-  out.headers.set(name, value)
-  return out
+  return reply(res, 'miss')
 }
 
 /* Workers call fetch(request, env, ctx). Start's `createServerEntry` is a pass-through wrapper whose
