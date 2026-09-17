@@ -25,7 +25,7 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       '@sanity/types':
-        specifier: ^6.13.0
+        specifier: ^6.13.1
         version: 6.13.1(@types/react@19.3.0)
       '@tailwindcss/vite':
         specifier: ^4.1.18
@@ -119,8 +119,8 @@ importers:
   admin:
     dependencies:
       '@sanity/types':
-        specifier: ^4.0.0
-        version: 4.22.1(@types/react@19.3.0)
+        specifier: ^6.13.1
+        version: 6.13.1(@types/react@19.3.0)
       '@sanity/vision':
         specifier: ^6.13.1
         version: 6.13.1(@babel/runtime@7.29.7)(@codemirror/lint@6.9.7)(@codemirror/theme-one-dark@6.1.3)(codemirror@6.0.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(sanity@6.13.1(@babel/core@8.0.1)(@babel/runtime@7.29.7)(@noble/hashes@2.4.0)(@rolldown/plugin-babel@0.2.4(@babel/core@8.0.1)(@babel/runtime@7.29.7)(rolldown@1.2.8)(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)))(@sanity/sdk@3.1.0(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.7.0(react@19.3.0))(xstate@5.32.6))(@types/node@22.20.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(babel-plugin-react-compiler@1.0.0)(esbuild@0.28.2)(jiti@2.7.0)(oxfmt@0.67.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(rolldown@1.2.8)(styled-components@6.5.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@8.1.1)(tsx@4.23.13)(typescript@6.0.3))(styled-components@6.5.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
@@ -2952,11 +2952,6 @@ packages:
     resolution: {integrity: sha512-FgaiEa3upiwizx1YHEHOiyoahpKmvzeWl4+UFZUs14KCs2ILVX/SCGoPp+hrKIZtOoJwFwOe7bdyxHr3UTs+vg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
-
-  '@sanity/types@4.22.1':
-    resolution: {integrity: sha512-EP22lVJexQoz/s6hxB8Ud2Oluctz17Cx7AoATIfJA6Cw+GiSS1Is3FcD1YhafcFOfhGryYNenyi3RckUqeCbXA==}
-    peerDependencies:
-      '@types/react': 18 || 19
 
   '@sanity/types@5.31.2':
     resolution: {integrity: sha512-UM8GfNgsrFaGt3TQzG5tKFyXvNMEQD+e8AJq44DiL7t/UYJaMScofCSWzFGg+4c7A3A2lhooC8zO9gJi8Vj7aw==}
@@ -9190,10 +9185,6 @@ snapshots:
       '@sanity/color': 3.0.8
       react: 19.3.0
 
-  '@sanity/media-library-types@1.7.0(@sanity/types@4.22.1(@types/react@19.3.0))':
-    dependencies:
-      '@sanity/types': 4.22.1(@types/react@19.3.0)
-
   '@sanity/media-library-types@1.7.0(@sanity/types@5.31.2(@types/react@19.3.0))':
     dependencies:
       '@sanity/types': 5.31.2(@types/react@19.3.0)
@@ -9405,12 +9396,6 @@ snapshots:
   '@sanity/template-validator@3.1.1':
     dependencies:
       yaml: 2.9.0
-
-  '@sanity/types@4.22.1(@types/react@19.3.0)':
-    dependencies:
-      '@sanity/client': 7.27.0
-      '@sanity/media-library-types': 1.7.0(@sanity/types@4.22.1(@types/react@19.3.0))
-      '@types/react': 19.3.0
 
   '@sanity/types@5.31.2(@types/react@19.3.0)':
     dependencies:
