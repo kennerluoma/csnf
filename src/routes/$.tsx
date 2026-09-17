@@ -8,7 +8,10 @@ import { seoMeta } from '#/lib/seo'
 type Search = Record<string, unknown>
 const toStrings = (s: Search) =>
   Object.fromEntries(
-    Object.entries(s).map(([k, v]) => [k, v == null ? undefined : String(v)]),
+    Object.entries(s).map(([k, v]) => [
+      k,
+      typeof v === 'string' ? v : v == null ? undefined : JSON.stringify(v),
+    ]),
   )
 
 /* Any other path: a `page` document by slug, or a default content index (src/lib/defaults.ts). */
@@ -28,5 +31,9 @@ export const Route = createFileRoute('/$')({
       loaderData?.settings,
     ),
   }),
-  component: () => <PageView page={Route.useLoaderData().page} />,
+  component: CatchAllPage,
 })
+
+function CatchAllPage() {
+  return <PageView page={Route.useLoaderData().page} />
+}

@@ -344,7 +344,7 @@ export function figToRest(
           if (!last) continue
           const { guidPath: _gp, ...fields } = so
           ov.set(gid(last), {
-            ...(ov.get(gid(last)) ?? {}),
+            ...ov.get(gid(last)),
             ...fields,
           } as FigNode)
         }
