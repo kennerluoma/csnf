@@ -7,6 +7,12 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { figToRest } from './fig.ts'
 import type { FigImport } from './fig.ts'
+import {
+  dedupeRenders,
+  dedupeRoutePaths,
+  routeKey,
+  stripMobileTokens,
+} from './route-key.ts'
 
 type FigmaNode = {
   id: string
@@ -708,14 +714,38 @@ const file = (
 const offline = !!fromFile || local
 
 const routes: Array<Record<string, unknown>> = []
-const isRouteFrame = (n: FigmaNode) =>
-  visible(n) &&
-  (n.type === 'FRAME' || n.type === 'SECTION' || n.type === 'COMPONENT')
+/* Top-level FRAMEs are routes. Designers often group pages inside a Section ("Desktop", "Mobile")
+   instead: recurse one level into a top-level SECTION and treat its visible FRAME children as
+   route frames too, remembering the section's name so mobile detection (below) can see it.
+   COMPONENT is never a route (it used to become one silently); note it instead. */
+function routeFrames(
+  page: FigmaNode,
+): Array<{ frame: FigmaNode; container: string }> {
+  const out: Array<{ frame: FigmaNode; container: string }> = []
+  for (const node of page.children ?? []) {
+    if (!visible(node)) continue
+    if (node.type === 'FRAME') {
+      out.push({ frame: node, container: page.name })
+    } else if (node.type === 'SECTION') {
+      for (const child of node.children ?? [])
+        if (visible(child) && child.type === 'FRAME')
+          out.push({ frame: child, container: node.name })
+    } else if (node.type === 'COMPONENT') {
+      lint.push({
+        level: 'info',
+        node: node.id,
+        name: node.name,
+        msg: 'top-level COMPONENT is not extracted as a route',
+      })
+    }
+  }
+  return out
+}
 // Pass 1: palette over every route frame, then learn the spacing system from it.
 for (const page of file.document.children ?? [])
   if (visible(page))
-    for (const frame of page.children ?? [])
-      if (isRouteFrame(frame)) collectPalette(frame, file.styles)
+    for (const { frame } of routeFrames(page))
+      collectPalette(frame, file.styles)
 learnSpacing()
 const figExtCache = new Map<string, string>()
 function figImageExt(hash: string) {
@@ -732,23 +762,30 @@ function figImageExt(hash: string) {
 // Frames that share a (normalised) name are one route: the first is canonical, the rest are `states`
 // (unstructured files keep one frame per screen state). A frame is a `page` when its children stack
 // vertically and span the width; otherwise a `screen` (app-like layout: the tree is the design).
-const routeKey = (name: string) =>
-  name
-    .replace(/\s*@.*$/, '')
-    .replace(/\s*[–-]\s*(alt|v\d+|copy|final|new|old|option|variant).*$/i, '')
-    .replace(/\s*\(.*\)\s*$/, '')
-    .replace(/\s+\d+$/, '')
-    .trim()
-    .toLowerCase()
+// routeKey/stripMobileTokens live in ./route-key.ts (node:test coverage).
 const routeIndex = new Map<string, number>()
 for (const page of file.document.children ?? []) {
   if (!visible(page)) continue
-  for (const frame of page.children ?? []) {
-    if (!isRouteFrame(frame)) continue
-    const name = frame.name.replace(/\s*@.*$/, '')
+  for (const { frame, container } of routeFrames(page)) {
+    const rawName = frame.name.replace(/\s*@.*$/, '')
     const width = Math.round(frame.absoluteBoundingBox?.width ?? 0)
     const isMobile =
-      /@mobile/i.test(frame.name) || /mobile/i.test(page.name) || width < 600
+      /@mobile/i.test(frame.name) ||
+      /mobile/i.test(page.name) ||
+      /mobile/i.test(container) ||
+      width < 600
+    const name = isMobile ? stripMobileTokens(rawName) : rawName
+    if (
+      !isMobile &&
+      /\s\d+$/.test(rawName) &&
+      !/[–-]\s*(alt|v\d+|copy|final|new|old|option|variant)/i.test(rawName)
+    )
+      lint.push({
+        level: 'info',
+        node: frame.id,
+        name: frame.name,
+        msg: 'frame name ends in a number; each becomes its own route — rename if these are meant to be one page',
+      })
     const key = `${isMobile ? 'm:' : ''}${routeKey(name)}`
     const path = /^(home|index|template|landing|start)$/i.test(routeKey(name))
       ? '/'
@@ -895,6 +932,30 @@ for (const page of file.document.children ?? []) {
     })
   }
 }
+
+// Detect any remaining duplicate `path` (a desktop route paired with its mobile viewport sharing
+// a path is expected — pages.ts skips the mobile ones when writing page documents) and make
+// render filenames unique. See ./route-key.ts for what "remaining" means and why.
+const routesForDedupe = routes.map((r) => ({
+  path: r.path as string,
+  viewport: r.viewport as 'desktop' | 'mobile',
+  id: r.id as string,
+}))
+const { renamed: renamedPaths, warnings } = dedupeRoutePaths(routesForDedupe)
+for (const [i, newPath] of renamedPaths) routes[i]!.path = newPath
+for (const w of warnings) {
+  const r = routes[w.index]!
+  lint.push({
+    level: 'warn',
+    node: r.id as string,
+    name: r.name as string,
+    msg: w.message,
+  })
+}
+const renamedRenders = dedupeRenders(
+  routes.map((r) => ({ render: r.render as string, id: r.id as string })),
+)
+for (const [i, newRender] of renamedRenders) routes[i]!.render = newRender
 
 // renders + image assets
 await mkdir('design/renders', { recursive: true })
