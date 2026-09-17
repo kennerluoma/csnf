@@ -256,7 +256,19 @@ export function figToRest(
     py: number,
     inheritedInvisible = false,
     depth = 0,
+    overrides: Map<string, FigNode> = new Map(),
   ): any => {
+    // Instance overrides (text, fills, visibility) keyed by the symbol child's guid; merged in
+    // when this node is being expanded as part of an instance.
+    const o = overrides.get(gid(n.guid))
+    if (o)
+      n = {
+        ...n,
+        ...o,
+        guid: n.guid,
+        children: n.children,
+        parentIndex: n.parentIndex,
+      }
     const m = n.transform ?? { m02: 0, m12: 0 }
     const x = px + (m.m02 ?? 0)
     const y = py + (m.m12 ?? 0)
@@ -322,14 +334,28 @@ export function figToRest(
       // Instances carry no children of their own in a .fig: expand the symbol's subtree in place
       // (the REST API does this server-side). Text overrides are not applied yet.
       const sym = nodes.get(out.componentId as string)
-      if (!n.children?.length && sym && depth < 12)
+      if (!n.children?.length && sym && depth < 12) {
+        const ov = new Map<string, FigNode>(overrides)
+        for (const so of (n.symbolData?.symbolOverrides ?? []) as Array<
+          Record<string, unknown> & { guidPath?: { guids?: Array<Guid> } }
+        >) {
+          const path = so.guidPath?.guids ?? []
+          const last = path[path.length - 1]
+          if (!last) continue
+          const { guidPath: _gp, ...fields } = so
+          ov.set(gid(last), {
+            ...(ov.get(gid(last)) ?? {}),
+            ...fields,
+          } as FigNode)
+        }
         out.children = (sym.children as Array<FigNode>).map((c) =>
-          convert(c, x, y, false, depth + 1),
+          convert(c, x, y, false, depth + 1, ov),
         )
+      }
     }
     if (n.children?.length)
       out.children = (n.children as Array<FigNode>).map((c) =>
-        convert(c, top ? 0 : x, top ? 0 : y, false, depth + 1),
+        convert(c, top ? 0 : x, top ? 0 : y, false, depth + 1, overrides),
       )
     return out
   }
