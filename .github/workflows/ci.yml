@@ -5,7 +5,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
-      VITE_SANITY_PROJECT_ID: placeholder
+      # Prerendering reads the (public) dataset at build time, so CI needs the real project id.
+      VITE_SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+      VITE_SANITY_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
