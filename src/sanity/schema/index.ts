@@ -7,6 +7,7 @@ import {
   exhibition,
   post,
   submission,
+  venue,
 } from './documents'
 import { imageWithAlt, link, richText, seo } from './objects'
 import { page } from './page'
@@ -23,6 +24,7 @@ export const schemaTypes = [
   exhibition,
   eventSeries,
   event,
+  venue,
   post,
   submission,
   siteSettings,

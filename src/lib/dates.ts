@@ -57,6 +57,18 @@ export function fmtEventTime(start: string, end?: string, allDay?: boolean) {
     : `${d}, ${t} – ${fmtDate(end)} ${fmtTime(end)}`
 }
 
+/* Live state for events and broadcasts: `now` is passed in so server and client agree. */
+export const isLive = (start: string, end: string | undefined, now: number) =>
+  Date.parse(start) <= now &&
+  (end ? Date.parse(end) > now : now - Date.parse(start) < 3 * 3_600_000)
+export const nextUpcoming = <T extends { start: string }>(
+  items: Array<T>,
+  now: number,
+) =>
+  items
+    .filter((i) => Date.parse(i.start) > now)
+    .sort((a, b) => a.start.localeCompare(b.start))[0]
+
 export const todayIso = () => new Date().toISOString().slice(0, 10)
 
 /* Month grid: 6 rows × 7 columns starting on Monday, with ISO date strings. Cells outside the

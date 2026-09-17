@@ -34,6 +34,9 @@ const structure: StructureResolver = (S) =>
         .title('Events')
         .child(S.documentTypeList('event').title('Events')),
       S.listItem()
+        .title('Venues')
+        .child(S.documentTypeList('venue').title('Venues')),
+      S.listItem()
         .title('Event series')
         .child(S.documentTypeList('eventSeries').title('Event series')),
       S.divider(),

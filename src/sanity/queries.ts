@@ -19,7 +19,7 @@ export const siteSettingsQuery = /* groq */ `*[_type == "siteSettings"][0]{
 const artistRef = `artist->{ _id, name, "slug": slug.current }`
 const artworkCard = `_id, title, "slug": slug.current, year, date, collection, medium, ${img('images[0]', 'image')}, ${artistRef}, tags`
 const exhibitionCard = `_id, title, "slug": slug.current, start, end, venue, ${img('image')}, artists[]->{ _id, name, "slug": slug.current }`
-const eventCard = `_id, title, "slug": slug.current, start, end, allDay, location, price, ${img('image')}, series->{ _id, title, "slug": slug.current }`
+const eventCard = `_id, title, "slug": slug.current, start, end, allDay, location, venue->{ _id, name, "slug": slug.current, address, mapLink }, price, ${img('image')}, series->{ _id, title, "slug": slug.current }`
 const postCard = `_id, title, "slug": slug.current, date, excerpt, ${img('image')}, tags`
 
 /* Index queries take optional filters as params ("" = no filter). */

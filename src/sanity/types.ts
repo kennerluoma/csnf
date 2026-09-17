@@ -117,6 +117,13 @@ export type EventCard = {
   end?: string
   allDay?: boolean
   location?: string
+  venue?: {
+    _id: string
+    name: string
+    slug: string
+    address?: string
+    mapLink?: string
+  }
   price?: string
   image?: SanityImage
   series?: { _id: string; title: string; slug: string }

@@ -49,7 +49,12 @@ function EventPage() {
             <Meta
               items={[
                 ['When', fmtEventTime(doc.start, doc.end, doc.allDay)],
-                ['Where', doc.location],
+                [
+                  'Where',
+                  doc.venue
+                    ? `${doc.venue.name}${doc.location ? `, ${doc.location}` : ''}`
+                    : doc.location,
+                ],
                 ['Price', doc.price],
                 ['Series', doc.series?.title],
               ]}

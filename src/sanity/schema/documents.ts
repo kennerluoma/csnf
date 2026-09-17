@@ -186,6 +186,25 @@ export const exhibition = defineType({
   },
 })
 
+export const venue = defineType({
+  name: 'venue',
+  title: 'Venue',
+  type: 'document',
+  description:
+    'A place events happen at. Events reference it; one-off locations can stay free text.',
+  fields: [
+    defineField({
+      name: 'name',
+      type: 'string',
+      validation: (r) => r.required(),
+    }),
+    slugField('name'),
+    defineField({ name: 'address', type: 'text', rows: 3 }),
+    defineField({ name: 'mapLink', type: 'url' }),
+  ],
+  preview: { select: { title: 'name', subtitle: 'address' } },
+})
+
 export const eventSeries = defineType({
   name: 'eventSeries',
   title: 'Event series',
@@ -221,7 +240,13 @@ export const event = defineType({
     }),
     defineField({ name: 'end', type: 'datetime' }),
     defineField({ name: 'allDay', type: 'boolean', initialValue: false }),
-    defineField({ name: 'location', type: 'string' }),
+    defineField({ name: 'venue', type: 'reference', to: [{ type: 'venue' }] }),
+    defineField({
+      name: 'location',
+      type: 'string',
+      description:
+        'Free text when there is no venue document (or a room within one).',
+    }),
     defineField({
       name: 'price',
       type: 'string',
