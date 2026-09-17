@@ -1,0 +1,11 @@
+{
+  // Minimal config for tools/placeholder-worker.js — the 503 page a project serves until its
+  // design is built. Deliberately has no "name": .github/workflows/deploy.yml passes
+  // `--name` read from the site's wrangler.jsonc, so the placeholder and the real site are
+  // always the same Worker and there is no second name to keep in sync at provisioning.
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "main": "./placeholder-worker.js",
+  "compatibility_date": "2025-09-02",
+  "workers_dev": true,
+  "preview_urls": true,
+}

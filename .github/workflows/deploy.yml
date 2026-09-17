@@ -1,5 +1,10 @@
 name: Deploy
 # main → production deploy. Any other branch → versioned preview URL aliased to the branch name.
+#
+# Until the first design build is merged (no design/mapping.json on main) the production deploy
+# publishes tools/placeholder-worker.js instead of the site: a 503 "being built" page under the
+# same Worker name. A visitor never sees the unbuilt template, and the Worker still exists, which
+# is what `wrangler versions upload` needs for PR previews.
 on:
   push:
   workflow_dispatch:
@@ -20,14 +25,43 @@ jobs:
       VITE_SANITY_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
     steps:
       - uses: actions/checkout@v7
+
+      # design/mapping.json is written by the build agent and lands on main with the first merged
+      # build PR. `worker` is the Worker name provisioning wrote into wrangler.jsonc.
+      - name: Is the design built?
+        id: site
+        run: |
+          if [ -f design/mapping.json ]; then built=true; else built=false; fi
+          worker=$(sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' wrangler.jsonc | head -1)
+          # The name reaches a shell as a wrangler argument below; keep it to what a Worker name can be.
+          case "$worker" in
+            "" | *[!a-z0-9-]*) echo "wrangler.jsonc has no usable worker name: '$worker'" >&2; exit 1 ;;
+          esac
+          echo "built=$built" >> "$GITHUB_OUTPUT"
+          echo "worker=$worker" >> "$GITHUB_OUTPUT"
+          echo "worker $worker · built $built"
+
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+
+      # Not built yet: the only thing that ships is the placeholder. No site build, no Worker
+      # secrets, no admin — the admin needs the schema the build produces.
+      - name: Deploy placeholder (design not built yet)
+        if: github.ref == 'refs/heads/main' && steps.site.outputs.built == 'false'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          command: deploy --name ${{ steps.site.outputs.worker }} --config tools/placeholder.wrangler.jsonc
+
+      - name: Build
+        if: github.ref != 'refs/heads/main' || steps.site.outputs.built == 'true'
+        run: pnpm build
 
       - name: Deploy production
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.site.outputs.built == 'true'
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
@@ -35,7 +69,7 @@ jobs:
           command: deploy
 
       - name: Worker secrets (contact form)
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.site.outputs.built == 'true'
         # Only the secrets that are set; wrangler refuses empty values. TURNSTILE_SITE_KEY is public and
         # goes in as a plain var so the form can render the widget.
         env:
@@ -59,7 +93,7 @@ jobs:
           rm -f secrets.json
 
       - name: Build admin
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.site.outputs.built == 'true'
         # The site build leaves .wrangler/deploy/config.json in the root, which wrangler
         # would otherwise pick up from the admin directory and refuse to deploy.
         run: rm -rf .wrangler && pnpm build:admin
@@ -68,7 +102,7 @@ jobs:
           SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
 
       - name: Deploy admin
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.site.outputs.built == 'true'
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
