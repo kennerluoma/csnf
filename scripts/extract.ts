@@ -273,12 +273,25 @@ function collectText(n: FigmaNode, acc: Record<string, string>) {
 //     multiple of the base; a genuinely distinct value (far from every anchor) is kept as-is.
 //  4. consistency: sections of the same type share padding/gap — the mode wins for near values.
 // Every change is recorded in `snapped` so the PR body can list what was rounded.
-const snapped: Array<{
+const snappedRaw: Array<{
   node: string
   prop: string
   from: number | string
   to: number | string
 }> = []
+const snapped = {
+  push(e: (typeof snappedRaw)[number]) {
+    if (
+      !snappedRaw.some(
+        (x) => x.node === e.node && x.prop === e.prop && x.from === e.from,
+      )
+    )
+      snappedRaw.push(e)
+  },
+  get list() {
+    return snappedRaw
+  },
+}
 const RADII = [0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 32, 999]
 
 type Hist = Map<number, number>
@@ -317,7 +330,7 @@ function snapValue(
   base: number,
   tol = 0.12,
 ): number {
-  if (v <= 0) return v
+  if (v <= 0 || v > 320) return v // huge values are layout artefacts (space-between), not design decisions
   const near = anchors.reduce<number | undefined>(
     (best, a) =>
       best === undefined || Math.abs(a - v) < Math.abs(best - v) ? a : best,
@@ -644,7 +657,7 @@ const manifest = {
             'colours within RGB distance 12 merged into the most-used',
           ]
         : [],
-    snapped,
+    snapped: snapped.list,
   },
   components: Object.entries(file.components).map(([id, c]) => ({
     id,
