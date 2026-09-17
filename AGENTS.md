@@ -7,26 +7,26 @@ This repo is a client site generated from the agency starter: TanStack Start + R
 - `pnpm dev` · site on :3000 (needs `.env` with `VITE_SANITY_PROJECT_ID`) · `pnpm dev:studio` · studio on :3333 (needs `studio/.env`)
 - `pnpm typecheck` · `pnpm lint` · `pnpm check` (oxfmt) · `pnpm build`
 - `pnpm inventory` · regenerate the block inventory at the bottom of this file (run after adding a block)
-- `pnpm sanity:typegen` · regenerate Sanity types after schema changes
+- `pnpm typegen` · regenerate `src/sanity/queries.gen.ts` + `src/sanity/sanity.types.ts` after any schema, block projection or query change (both are committed; CI fails when they are stale)
 
 ## Architecture: the block system
 
 - A `page` document = `title`, `slug`, `blocks[]`, `seo`. `slug = home` is `/`; any other slug is `/<slug>`.
 - Each block is ONE folder in `src/blocks/<Name>/` containing:
   - `<Name>.schema.ts` · exports `<name>Schema` (a Sanity `object` type via `defineType`, with a one-sentence `description` saying when to use it) and `<name>Projection` (a GROQ conditional projection: `_type == "<name>" => { ...fields }`).
-  - `<Name>.tsx` · exports the React component with props matching the projection.
-- Every block is registered twice: its schema + projection in `src/blocks/schemas.ts` (no React; the studio imports this) and its component in `src/blocks/registry.ts`. Both alphabetical. Nothing else needs editing to add a block.
-- Blocks are pure presentational components; they never fetch. A block that lists CMS documents gets its data from a resolver in `src/blocks/resolvers.ts` (block type → async function returning extra props; receives URL search params and site settings). Add a resolver there when a block needs documents.
+  - `<Name>.tsx` · exports the React component; its props are `BlockOf<'<name>'>` from `src/sanity/types.ts` (or `Resolved<'<name>'>` from `src/blocks/resolvers.ts` when it has a resolver), never a hand-written shape. Fields are `T | null`; handle null where the value is used.
+- Every block is registered twice: its schema + projection in `src/blocks/schemas.ts` (no React; the studio imports this) and its component in `src/blocks/registry.ts` (an import and a `case` in `renderBlock`). Both alphabetical. Then `pnpm typegen`, so the block joins the `AnyBlock` union. Nothing else needs editing to add a block.
+- Blocks are pure presentational components; they never fetch. A block that lists CMS documents gets its data from a resolver in `src/blocks/resolvers.ts` (block type → function returning the block's `data` prop; receives its own block member, URL search params and site settings). Add a resolver and its `case` in `resolveBlock` there when a block needs documents; drop documents without a slug with the guards in `src/sanity/guards.ts`.
 - Shared object types (`link`, `imageWithAlt`, `richText`, `seo`) live in `src/sanity/schema/objects.ts`. Reuse them; don't redefine link/image shapes inside blocks.
 
 ## Content types (template v2)
 
-Documents in `src/sanity/schema/documents.ts`: `artist`, `artwork`, `exhibition`, `event` (+ `eventSeries`, `venue`), `post`, `submission` (contact form, read-only). Live state: `isLive` / `nextUpcoming` in `src/lib/dates.ts` with `useNow()` for a ticking clock. Each has a detail route in `src/routes/<type>/$slug.tsx` (`/work/<slug>`, `/artists/<slug>`, `/exhibitions/<slug>`, `/events/<slug>`, `/news/<slug>`). Queries: `src/sanity/queries.ts`; TS shapes: `src/sanity/types.ts`.
+Documents in `src/sanity/schema/documents.ts`: `artist`, `artwork`, `exhibition`, `event` (+ `eventSeries`, `venue`), `post`, `submission` (contact form, read-only). Live state: `isLive` / `nextUpcoming` in `src/lib/dates.ts` with `useNow()` for a ticking clock. Each has a detail route in `src/routes/<type>/$slug.tsx` (`/work/<slug>`, `/artists/<slug>`, `/exhibitions/<slug>`, `/events/<slug>`, `/news/<slug>`). Queries: `src/sanity/queries.ts` (the app imports the generated literals from `src/sanity/queries.gen.ts`); TS shapes: generated in `src/sanity/sanity.types.ts`, with app-facing names derived from them in `src/sanity/types.ts`.
 
 - Index pages are blocks: `artworkGrid`, `artistList`, `exhibitionList`, `eventCalendar`, `postList`. When a design section lists works / exhibitions / events / news, map it to one of these (with `mode`, `limit`, `featuredOnly`, `view` as needed) instead of a `cardGrid` of hand-typed cards. `cardGrid` is only for things that are not CMS documents.
 - `/work`, `/artists`, `/exhibitions`, `/events`, `/news` render a default page (one index block, `src/lib/defaults.ts`) when no `page` document with that slug exists. A `page` document with that slug replaces the default entirely. Nav links to these paths therefore never 404.
 - Filters are URL search params rendered server-side (`?artist=…&year=…`, `?month=YYYY-MM&series=…`, `?tag=…`), so links are shareable. `FilterBar` in `src/ui` renders them.
-- Images: project with `img('<field>')` from `src/sanity/queries.ts` so the `Image` primitive gets blur-up (lqip) and intrinsic size; pass `sizes` for anything not full-width. `imageWithAlt.caption` is a per-image caption.
+- Images: project with `img('<field>')` from `src/sanity/img.ts` (queries and block projections alike) so the `Image` primitive gets blur-up (lqip) and intrinsic size; pass `sizes` for anything not full-width. `imageWithAlt.caption` is a per-image caption.
 - Artworks group by `collection` (Paintings, Works on Paper…); `artworkGrid` filters by it; `/works-on-paper` is a default index.
 - Dates: only through `src/lib/dates.ts` (`fmtDate`, `fmtRange`, `fmtEventTime`, `monthGrid`, `toIcs`). Calendar feeds: `/ics/events` (all upcoming, `?series=`), `/ics/event/<slug>`.
 - Forms: `contactForm` block posts to `/api/contact` (`src/routes/api/contact.tsx`: honeypot, optional Turnstile, stores a `submission`, emails `siteSettings.contactEmail` via Resend). `newsletterSignup` posts directly to the client's provider (`siteSettings.newsletter`). Both are plain HTML forms; no client JS.
@@ -45,6 +45,7 @@ These keep projects alike enough that a fix or a lesson from one applies to the 
 
 **Always on (installed, enforced by lint, the build or CI)**
 
+- **Types come from Sanity.** Run `pnpm typegen` after a schema, projection or query change and use the generated query result types (`src/sanity/types.ts` only renames them); never hand-write a content shape or pass a type to `client.fetch`. No `any`, no type assertions, no `!`, no `@ts-ignore` (lint errors in `src/`). `unknown` only at a real boundary (FormData, `JSON.parse`, `response.json()`, `catch`), narrowed on the spot with a guard. Images are always projected with `img()`, which also keeps server function results serialisable.
 - **Class names go through `cn()`** (`src/lib/cn.ts`, clsx). Never build a class string with a template literal or `+`; lint fails on it. Static strings stay plain strings. Primitives own their styling: change one through a variant prop, not by passing conflicting utilities.
 - **Interactive components start from Base UI** (`@base-ui/react`): dialog, popover, menu, select, tabs, accordion, tooltip, switch, checkbox, field, toast and so on. If Base UI has the component, wrap it as a primitive in `src/ui/index.tsx` and style it with tokens; don't hand-roll focus traps, roving tabindex or ARIA. Hand-written is fine only where Base UI has nothing (a lightbox's image logic, a calendar grid), and then keyboard and focus behaviour are part of the work. Not everything is a component: a link is still a link.
 - **Accessibility is linted** (oxlint `jsx-a11y`): anything clickable is a `button` or a link, images have `alt`, form controls have labels.
@@ -81,7 +82,7 @@ Anything not listed: prefer no dependency, then the smallest well-maintained one
 
 ## Data
 
-- Fetch via `createServerFn` in `src/lib/page.ts` (do not name files `*.server.ts`; Start blocks importing those from routes), queries in `src/sanity/queries.ts`. Server functions must return plain JSON (Portable Text is typed as `Array<AnyBlock>` for this reason).
+- Fetch via `createServerFn` in `src/lib/page.ts` (do not name files `*.server.ts`; Start blocks importing those from routes), queries in `src/sanity/queries.ts`. Server functions must return plain JSON: project every image with `img()` and any other field whose generated type contains `unknown` explicitly.
 - Images: always `imageWithAlt`; render with the `Image` primitive (handles Sanity CDN URLs).
 - Document ids: top-level, hyphenated (`page-home`, `artist-mara-lindqvist`). Never dotted ids; the public read role can't see them.
 - GROQ params: never name a param `$tag` (`tag` is a reserved client option); use `$tagFilter`.

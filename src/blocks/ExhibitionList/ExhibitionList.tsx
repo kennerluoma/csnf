@@ -10,21 +10,10 @@ import {
   Stack,
   Text,
 } from '#/ui'
-import type { ExhibitionCard, Link } from '#/sanity/types'
+import type { Resolved } from '#/blocks/resolvers'
+import type { ExhibitionCard } from '#/sanity/types'
 
-export type ExhibitionListProps = {
-  eyebrow?: string
-  heading?: string
-  mode?: 'current' | 'currentUpcoming' | 'all' | 'past'
-  pastLimit?: number
-  cta?: Link
-  /* resolved */
-  groups?: {
-    current: Array<ExhibitionCard>
-    upcoming: Array<ExhibitionCard>
-    past: Array<ExhibitionCard>
-  }
-}
+export type ExhibitionListProps = Resolved<'exhibitionList'>
 
 function Group({
   title,
@@ -61,10 +50,11 @@ function Group({
 export function ExhibitionList({
   eyebrow,
   heading,
-  mode = 'all',
+  mode: modeProp,
   cta,
-  groups = { current: [], upcoming: [], past: [] },
+  data: { groups },
 }: ExhibitionListProps) {
+  const mode = modeProp ?? 'all'
   const show = {
     current: mode !== 'past',
     upcoming: mode === 'currentUpcoming' || mode === 'all',
@@ -90,7 +80,7 @@ export function ExhibitionList({
           {show.upcoming && <Group title="Upcoming" items={groups.upcoming} />}
           {show.past && <Group title="Past" items={groups.past} />}
           {empty && <Text muted>No exhibitions to show.</Text>}
-          {cta && (
+          {cta?.href && (
             <Button href={cta.href} variant="secondary" className="self-start">
               {cta.label}
             </Button>

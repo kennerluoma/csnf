@@ -9,7 +9,6 @@ import {
   defaultStreamHandler,
   defineHandlerCallback,
 } from '@tanstack/react-start/server'
-import { createServerEntry } from '@tanstack/react-start/server-entry'
 import { collected } from '#/lib/staticData'
 
 const start = createStartHandler(
@@ -62,8 +61,7 @@ async function fetch(
     const asset = await env.ASSETS.fetch(request)
     if (asset.status !== 404) return asset
   }
-  const cache = (globalThis as unknown as { caches?: { default: Cache } })
-    .caches?.default
+  const cache = typeof caches === 'undefined' ? undefined : caches.default
   // Router data requests (client-side navigation) carry their own payload in the query; never cache them.
   if (
     !cache ||
@@ -102,7 +100,6 @@ function withHeader(res: Response, name: string, value: string) {
   return out
 }
 
-// Workers call fetch(request, env, ctx); Start's type only knows the first argument.
-export default createServerEntry({
-  fetch: fetch as unknown as Parameters<typeof createServerEntry>[0]['fetch'],
-})
+/* Workers call fetch(request, env, ctx). Start's `createServerEntry` is a pass-through wrapper whose
+   type only knows the first argument, so the entry is exported as the plain Workers module it is. */
+export default { fetch }

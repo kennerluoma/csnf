@@ -24,7 +24,7 @@ export const newsletterSignupSchema = defineType({
   ],
   preview: {
     select: { title: 'heading' },
-    prepare: ({ title }) => ({
+    prepare: ({ title }: { title?: string }) => ({
       title: title ?? 'Newsletter',
       subtitle: 'Newsletter signup',
     }),

@@ -12,108 +12,98 @@ import {
   exhibitionsQuery,
   postsQuery,
   upcomingEventsQuery,
-} from '#/sanity/queries'
+} from '#/sanity/queries.gen'
 import type {
-  AnyBlock,
-  ArtistRef,
-  ArtworkCard,
-  EventCard,
-  ExhibitionCard,
-  PostCard,
-  SanityImage,
-  SiteSettings,
-} from '#/sanity/types'
+  EventSeriesQueryResult,
+  EventsQueryResult,
+} from '#/sanity/sanity.types'
+import { hasSlug, isScheduled } from '#/sanity/guards'
+import type { AnyBlock, BlockOf, BlockType, SiteSettings } from '#/sanity/types'
 
 export type ResolveContext = {
   path: string
   search: Record<string, string | undefined>
   settings: SiteSettings | null
 }
-type Resolver = (
-  block: AnyBlock,
-  ctx: ResolveContext,
-) => Promise<Record<string, unknown>>
 
-const str = (v: unknown) => (typeof v === 'string' ? v : '')
-const num = (v: unknown, d: number) => (typeof v === 'number' && v > 0 ? v : d)
+const noEvents: EventsQueryResult = []
+const noSeries: EventSeriesQueryResult = []
+const limitOr = (v: number | null, d: number) => (v !== null && v > 0 ? v : d)
 
-export const blockResolvers: Record<string, Resolver> = {
-  async artistList() {
-    return {
-      items:
-        await client.fetch<Array<ArtistRef & { portrait?: SanityImage }>>(
-          artistsQuery,
-        ),
-    }
+/* One resolver per block type that needs server data; each takes its own block member. The result
+   lands on the block as `data` (see Resolved<T>), typed from what the resolver returns. */
+export const blockResolvers = {
+  async artistList(_block: BlockOf<'artistList'>, _ctx: ResolveContext) {
+    const items = await client.fetch(artistsQuery)
+    return { items: items.filter(hasSlug) }
   },
 
-  async artworkGrid(block, { path, search }) {
+  async artworkGrid(
+    block: BlockOf<'artworkGrid'>,
+    { path, search }: ResolveContext,
+  ) {
     const values = {
       artist: search.artist,
       year: search.year,
       medium: search.medium,
-      collection:
-        search.collection ??
-        (typeof block.collection === 'string' ? block.collection : undefined),
+      collection: search.collection ?? block.collection ?? undefined,
       tag: search.tag,
     }
     const [items, filters] = await Promise.all([
-      client.fetch<Array<ArtworkCard>>(artworksQuery, {
-        artist: str(values.artist),
+      client.fetch(artworksQuery, {
+        artist: values.artist ?? '',
         year: Number(values.year) || 0,
-        medium: str(values.medium),
-        collection: str(values.collection),
-        tagFilter: str(values.tag),
+        medium: values.medium ?? '',
+        collection: values.collection ?? '',
+        tagFilter: values.tag ?? '',
         featured: block.featuredOnly === true,
-        limit: num(block.limit, 500),
+        limit: limitOr(block.limit, 500),
       }),
-      block.showFilters === false
-        ? null
-        : client.fetch<{
-            artists: Array<ArtistRef>
-            years: Array<number>
-            media: Array<string>
-            tags: Array<string>
-          }>(artworkFiltersQuery),
+      block.showFilters === false ? null : client.fetch(artworkFiltersQuery),
     ])
-    return { items, filters, values, path }
+    return {
+      items: items.filter(hasSlug),
+      filters: filters && {
+        ...filters,
+        artists: filters.artists.filter(hasSlug),
+      },
+      values,
+      path,
+    }
   },
 
-  async exhibitionList(block) {
-    const groups = await client.fetch<{
-      current: Array<ExhibitionCard>
-      upcoming: Array<ExhibitionCard>
-      past: Array<ExhibitionCard>
-    }>(exhibitionsQuery, {
+  async exhibitionList(block: BlockOf<'exhibitionList'>, _ctx: ResolveContext) {
+    const groups = await client.fetch(exhibitionsQuery, {
       today: todayIso(),
-      limit: num(block.pastLimit, 12),
+      limit: limitOr(block.pastLimit, 12),
     })
-    return { groups }
+    return {
+      groups: {
+        current: groups.current.filter(isScheduled),
+        upcoming: groups.upcoming.filter(isScheduled),
+        past: groups.past.filter(isScheduled),
+      },
+    }
   },
 
-  async eventCalendar(block, { path, search }) {
+  async eventCalendar(
+    block: BlockOf<'eventCalendar'>,
+    { path, search }: ResolveContext,
+  ) {
     const m = parseMonth(search.month)
-    const series = str(search.series)
+    const series = search.series ?? ''
     const [inMonth, upcoming, allSeries] = await Promise.all([
       block.view === 'list'
-        ? []
-        : client.fetch<Array<EventCard>>(eventsQuery, {
-            from: m.from,
-            to: m.to,
-            series,
-          }),
+        ? noEvents
+        : client.fetch(eventsQuery, { from: m.from, to: m.to, series }),
       block.view === 'month'
-        ? []
-        : client.fetch<Array<EventCard>>(upcomingEventsQuery, {
+        ? noEvents
+        : client.fetch(upcomingEventsQuery, {
             now: new Date().toISOString(),
             series,
-            limit: num(block.limit, 12),
+            limit: limitOr(block.limit, 12),
           }),
-      block.showFilters === false
-        ? []
-        : client.fetch<Array<{ slug: string; title: string }>>(
-            eventSeriesQuery,
-          ),
+      block.showFilters === false ? noSeries : client.fetch(eventSeriesQuery),
     ])
     return {
       month: {
@@ -124,23 +114,26 @@ export const blockResolvers: Record<string, Resolver> = {
         next: m.next,
         weeks: monthGrid(m.year, m.month),
       },
-      inMonth,
-      upcoming,
-      series: allSeries,
+      inMonth: inMonth.filter(isScheduled),
+      upcoming: upcoming.filter(isScheduled),
+      series: allSeries.filter(hasSlug),
       values: { series: search.series },
       path,
     }
   },
 
-  async postList(block, { search }) {
-    const items = await client.fetch<Array<PostCard>>(postsQuery, {
-      tagFilter: str(search.tag),
-      limit: num(block.limit, 6),
+  async postList(block: BlockOf<'postList'>, { search }: ResolveContext) {
+    const items = await client.fetch(postsQuery, {
+      tagFilter: search.tag ?? '',
+      limit: limitOr(block.limit, 6),
     })
-    return { items }
+    return { items: items.filter(hasSlug) }
   },
 
-  async contactForm(_block, { path, search }) {
+  contactForm(
+    _block: BlockOf<'contactForm'>,
+    { path, search }: ResolveContext,
+  ) {
     return {
       sent: search.sent === '1',
       error:
@@ -154,20 +147,54 @@ export const blockResolvers: Record<string, Resolver> = {
     }
   },
 
-  async newsletterSignup(_block, { settings }) {
-    return { newsletter: settings?.newsletter }
+  newsletterSignup(
+    _block: BlockOf<'newsletterSignup'>,
+    { settings }: ResolveContext,
+  ) {
+    return { newsletter: settings?.newsletter ?? null }
   },
 }
 
-export async function resolveBlocks(
+type Resolvers = typeof blockResolvers
+/* A block as components receive it: the page query's member for that `_type`, plus `data` from
+   its resolver when it has one. */
+export type Resolved<T extends BlockType> = T extends keyof Resolvers
+  ? BlockOf<T> & { data: Awaited<ReturnType<Resolvers[T]>> }
+  : BlockOf<T>
+export type ResolvedBlock = { [T in BlockType]: Resolved<T> }[BlockType]
+
+/* Narrowing on `_type` hands each resolver its own member type. A block type with a resolver
+   above gets a case here; the rest pass through. */
+async function resolveBlock(
+  block: AnyBlock,
+  ctx: ResolveContext,
+): Promise<ResolvedBlock> {
+  switch (block._type) {
+    case 'artistList':
+      return { ...block, data: await blockResolvers.artistList(block, ctx) }
+    case 'artworkGrid':
+      return { ...block, data: await blockResolvers.artworkGrid(block, ctx) }
+    case 'contactForm':
+      return { ...block, data: blockResolvers.contactForm(block, ctx) }
+    case 'eventCalendar':
+      return { ...block, data: await blockResolvers.eventCalendar(block, ctx) }
+    case 'exhibitionList':
+      return { ...block, data: await blockResolvers.exhibitionList(block, ctx) }
+    case 'newsletterSignup':
+      return {
+        ...block,
+        data: blockResolvers.newsletterSignup(block, ctx),
+      }
+    case 'postList':
+      return { ...block, data: await blockResolvers.postList(block, ctx) }
+    default:
+      return block
+  }
+}
+
+export function resolveBlocks(
   blocks: Array<AnyBlock> | null,
   ctx: ResolveContext,
 ) {
-  if (!blocks?.length) return blocks
-  return Promise.all(
-    blocks.map(async (b) => {
-      const r = blockResolvers[b._type] as Resolver | undefined
-      return r ? ({ ...b, ...(await r(b, ctx)) } as AnyBlock) : b
-    }),
-  )
+  return Promise.all((blocks ?? []).map((b) => resolveBlock(b, ctx)))
 }

@@ -1,4 +1,5 @@
 import { defineField, defineType } from '@sanity/types'
+import { img } from '../../sanity/img'
 
 export const cardGridSchema = defineType({
   name: 'cardGrid',
@@ -39,11 +40,11 @@ export const cardGridSchema = defineType({
   ],
   preview: {
     select: { title: 'heading' },
-    prepare: ({ title }) => ({
+    prepare: ({ title }: { title?: string }) => ({
       title: title ?? 'Card grid',
       subtitle: 'Card grid',
     }),
   },
 })
 
-export const cardGridProjection = /* groq */ `_type == "cardGrid" => { eyebrow, heading, columns, cards[]{ _key, title, body, image, link } }`
+export const cardGridProjection = /* groq */ `_type == "cardGrid" => { eyebrow, heading, columns, cards[]{ _key, title, body, ${img('image')}, link } }`

@@ -31,7 +31,7 @@ export const contactFormSchema = defineType({
   ],
   preview: {
     select: { title: 'heading' },
-    prepare: ({ title }) => ({
+    prepare: ({ title }: { title?: string }) => ({
       title: title ?? 'Contact form',
       subtitle: 'Contact form',
     }),

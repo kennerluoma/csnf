@@ -434,7 +434,7 @@ function harmoniseSections(
     for (const [name, get, set] of props) {
       const h: Hist = new Map()
       for (const s of group) bump(h, get(s.layout!))
-      const mode = [...h.entries()].sort((a, b) => b[1] - a[1])[0][0]
+      const mode = [...h.entries()].sort((a, b) => b[1] - a[1])[0]![0]
       for (const s of group) {
         const v = get(s.layout!)
         if (
@@ -475,7 +475,7 @@ function typeScale(
     cluster = []
   }
   for (const sz of sizes) {
-    if (cluster.length && sz > cluster[0] * 1.1) flush()
+    if (cluster.length && sz > cluster[0]! * 1.1) flush()
     cluster.push(sz)
   }
   flush()
@@ -510,7 +510,7 @@ function mergeColours(
   const rgb = (h: string) =>
     [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))
   const dist = (a: string, b: string) =>
-    Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]))
+    Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]!))
   const out: Array<{ hex: string; uses: number; styleName?: string }> = []
   for (const e of [...entries].sort((a, b) => b.uses - a.uses)) {
     const near = out.find((o) => dist(o.hex, e.hex) < 12)
@@ -715,7 +715,7 @@ for (const page of file.document.children ?? []) {
       // a repeated screen: keep its text + shallow tree as a state of the canonical route
       const text: Record<string, string> = {}
       collectText(frame, text)
-      const route = routes[existing]
+      const route = routes[existing]!
       ;(route.states as Array<unknown>).push({
         id: frame.id,
         name: frame.name,

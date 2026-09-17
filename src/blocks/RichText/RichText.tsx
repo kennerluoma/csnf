@@ -1,7 +1,7 @@
 import { Container, Heading, RichText as Prose, Section, Stack } from '#/ui'
-import type { RichTextValue } from '#/sanity/types'
+import type { BlockOf } from '#/sanity/types'
 
-export type RichTextBlockProps = { heading?: string; content?: RichTextValue }
+export type RichTextBlockProps = BlockOf<'richTextBlock'>
 
 export function RichTextBlock({ heading, content }: RichTextBlockProps) {
   return (

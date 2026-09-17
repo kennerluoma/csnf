@@ -6,8 +6,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import { createClient } from '@sanity/client'
 import { apiVersion, dataset, projectId } from '#/sanity/env'
 import { client } from '#/sanity/client'
-import { siteSettingsQuery } from '#/sanity/queries'
-import type { SiteSettings } from '#/sanity/types'
+import { siteSettingsQuery } from '#/sanity/queries.gen'
+
+/* Turnstile siteverify answers `{ success: boolean, … }`. */
+const isTurnstileSuccess = (v: unknown) =>
+  typeof v === 'object' && v !== null && 'success' in v && v.success === true
 
 const redirect = (page: string, q: string) =>
   new Response(null, {
@@ -48,8 +51,9 @@ export const Route = createFileRoute('/api/contact')({
               }),
             },
           )
-          const j = (await res.json()) as { success?: boolean }
-          if (!j.success) return redirect(page, 'error=invalid')
+          const verdict: unknown = await res.json()
+          if (!isTurnstileSuccess(verdict))
+            return redirect(page, 'error=invalid')
         }
 
         try {
@@ -76,9 +80,7 @@ export const Route = createFileRoute('/api/contact')({
               'contact: SANITY_WRITE_TOKEN not set; submission not stored',
             )
 
-          const settings = await client.fetch<SiteSettings | null>(
-            siteSettingsQuery,
-          )
+          const settings = await client.fetch(siteSettingsQuery)
           const to = settings?.contactEmail
           const key = process.env.RESEND_API_KEY
           if (to && key) {

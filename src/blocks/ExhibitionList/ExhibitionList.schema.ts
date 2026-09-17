@@ -28,7 +28,7 @@ export const exhibitionListSchema = defineType({
   ],
   preview: {
     select: { title: 'heading', mode: 'mode' },
-    prepare: ({ title, mode }) => ({
+    prepare: ({ title, mode }: { title?: string; mode?: string }) => ({
       title: title ?? 'Exhibitions',
       subtitle: `Exhibition list · ${mode ?? 'all'}`,
     }),

@@ -1,6 +1,10 @@
 /* Content types most clients need (docs/10-template-v2.md). Index pages are blocks
    (artworkGrid, exhibitionList, eventCalendar, postList); detail routes live in src/routes. */
 import { defineField, defineType } from '@sanity/types'
+import type { PreviewValue } from '@sanity/types'
+
+/* A selected image field handed straight back as the preview's media: Sanity's own type for that slot. */
+type Media = PreviewValue['media']
 
 const slugField = (source = 'title') =>
   defineField({
@@ -117,7 +121,17 @@ export const artwork = defineType({
       year: 'year',
       media: 'images.0',
     },
-    prepare: ({ title, artistName, year, media }) => ({
+    prepare: ({
+      title,
+      artistName,
+      year,
+      media,
+    }: {
+      title?: string
+      artistName?: string
+      year?: number
+      media?: Media
+    }) => ({
       title,
       subtitle: [artistName, year].filter(Boolean).join(' · '),
       media,
@@ -178,7 +192,17 @@ export const exhibition = defineType({
   ],
   preview: {
     select: { title: 'title', start: 'start', end: 'end', media: 'image' },
-    prepare: ({ title, start, end, media }) => ({
+    prepare: ({
+      title,
+      start,
+      end,
+      media,
+    }: {
+      title?: string
+      start?: string
+      end?: string
+      media?: Media
+    }) => ({
       title,
       subtitle: [start, end].filter(Boolean).join(' → '),
       media,
@@ -276,7 +300,17 @@ export const event = defineType({
       series: 'series.title',
       media: 'image',
     },
-    prepare: ({ title, start, series, media }) => ({
+    prepare: ({
+      title,
+      start,
+      series,
+      media,
+    }: {
+      title?: string
+      start?: string
+      series?: string
+      media?: Media
+    }) => ({
       title,
       subtitle: [start?.slice(0, 10), series].filter(Boolean).join(' · '),
       media,
@@ -342,7 +376,15 @@ export const submission = defineType({
   ],
   preview: {
     select: { title: 'name', subtitle: 'subject', date: 'receivedAt' },
-    prepare: ({ title, subtitle, date }) => ({
+    prepare: ({
+      title,
+      subtitle,
+      date,
+    }: {
+      title?: string
+      subtitle?: string
+      date?: string
+    }) => ({
       title: title ?? 'Anonymous',
       subtitle: [date?.slice(0, 16).replace('T', ' '), subtitle]
         .filter(Boolean)

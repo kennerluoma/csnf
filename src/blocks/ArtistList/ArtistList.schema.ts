@@ -18,7 +18,7 @@ export const artistListSchema = defineType({
   ],
   preview: {
     select: { title: 'heading' },
-    prepare: ({ title }) => ({
+    prepare: ({ title }: { title?: string }) => ({
       title: title ?? 'Artists',
       subtitle: 'Artist list',
     }),

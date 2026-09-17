@@ -45,6 +45,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      groq:
+        specifier: ^6.13.1
+        version: 6.13.1
       react:
         specifier: ^19.2.0
         version: 19.3.0

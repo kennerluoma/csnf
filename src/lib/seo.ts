@@ -4,10 +4,10 @@ import { urlFor } from '#/sanity/image'
 import type { SanityImage, Seo, SiteSettings } from '#/sanity/types'
 
 export type SeoInput = {
-  title?: string
-  description?: string
-  image?: SanityImage
-  seo?: Seo
+  title?: string | null
+  description?: string | null
+  image?: SanityImage | null
+  seo?: Seo | null
   path?: string
   type?: 'website' | 'article'
 }

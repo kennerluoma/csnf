@@ -1,8 +1,8 @@
 import { RenderBlocks } from '#/blocks/RenderBlocks'
 import { Container, Heading, Section, Text } from '#/ui'
-import type { PageDoc } from '#/sanity/types'
+import type { ResolvedPage } from '#/lib/page'
 
-export function PageView({ page }: { page: PageDoc | null }) {
+export function PageView({ page }: { page: ResolvedPage | null }) {
   if (!page) {
     return (
       <Section>

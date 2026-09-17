@@ -3,10 +3,9 @@ import { Fragment } from 'react'
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react'
 import { Link as RouterLink, defaultParseSearch } from '@tanstack/react-router'
 import { PortableText } from '@portabletext/react'
-import type { PortableTextBlock } from '@portabletext/react'
 import { cn } from '#/lib/cn'
 import { urlFor } from '#/sanity/image'
-import type { AnyBlock, SanityImage } from '#/sanity/types'
+import type { RichTextValue, SanityImage } from '#/sanity/types'
 
 /* Internal paths navigate client-side (router Link, preloaded on hover); everything else is a
    plain anchor. Feeds, API routes and files are not app routes. */
@@ -158,7 +157,7 @@ export function Heading({
   level?: 1 | 2 | 3
   size?: 'display' | 'h2' | 'h3'
 }) {
-  const Tag = `h${level}` as ElementType
+  const Tag: ElementType = `h${level}`
   const s = size ?? ({ 1: 'display', 2: 'h2', 3: 'h3' } as const)[level]
   return (
     <Tag
@@ -300,8 +299,8 @@ export function Image({
         .map((w) => `${url(w)} ${Math.round(w)}w`)
         .join(', ')}
       sizes={sizes ?? `(min-width: 1024px) ${Math.min(width, 1600)}px, 100vw`}
-      width={meta?.width}
-      height={meta?.height}
+      width={meta?.width ?? undefined}
+      height={meta?.height ?? undefined}
       alt={image.alt ?? ''}
       loading={loading}
       decoding="async"
@@ -328,13 +327,13 @@ export function RichText({
   value,
   className,
 }: {
-  value: Array<AnyBlock> | null | undefined
+  value: RichTextValue | null | undefined
   className?: string
 }) {
   if (!value?.length) return null
   return (
     <div className={cn('prose prose-neutral max-w-none text-body', className)}>
-      <PortableText value={value as unknown as Array<PortableTextBlock>} />
+      <PortableText value={value} />
     </div>
   )
 }
@@ -368,12 +367,12 @@ export function Card({
   badge,
 }: {
   href: string
-  title: string
+  title: string | null
   meta?: string
-  excerpt?: string
-  image?: SanityImage
+  excerpt?: string | null
+  image?: SanityImage | null
   aspect?: '4/3' | '1/1' | '3/4' | '16/9'
-  badge?: string
+  badge?: string | null
 }) {
   return (
     <A href={href} className="group flex flex-col gap-3 no-underline">
@@ -594,7 +593,7 @@ export function Calendar({
 export function Meta({
   items,
 }: {
-  items: Array<[string, string | undefined]>
+  items: Array<[string, string | null | undefined]>
 }) {
   const rows = items.filter((i): i is [string, string] => !!i[1])
   if (!rows.length) return null

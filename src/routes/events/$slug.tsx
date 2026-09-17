@@ -18,8 +18,8 @@ import {
 export const Route = createFileRoute('/events/$slug')({
   loader: async ({ params }) => {
     const r = await getEvent({ data: params.slug })
-    if (!r.found) throw notFound()
-    return r
+    if (!r.doc) throw notFound()
+    return { doc: r.doc, settings: r.settings }
   },
   head: ({ loaderData }) =>
     loaderData

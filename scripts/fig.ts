@@ -49,7 +49,7 @@ class Reader {
     this.b = b
   }
   byte() {
-    return this.b[this.i++]
+    return this.b[this.i++]!
   }
   bool() {
     return this.byte() > 0
@@ -142,8 +142,8 @@ function decodeMessage(r: Reader, types: Array<KType>, rootName: string): any {
       for (let i = 0; i < n; i++) out.push(value(typeId, false))
       return out
     }
-    if (typeId < 0) return (r as any)[PRIMS[~typeId]]()
-    const t = types[typeId]
+    if (typeId < 0) return (r as any)[PRIMS[~typeId]!]()
+    const t = types[typeId]!
     if (t.kind === 0) return t.fields.get(r.uint())?.name
     if (t.kind === 1) {
       const o: Record<string, unknown> = {}

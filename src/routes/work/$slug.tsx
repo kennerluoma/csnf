@@ -19,8 +19,8 @@ import {
 export const Route = createFileRoute('/work/$slug')({
   loader: async ({ params }) => {
     const r = await getArtwork({ data: params.slug })
-    if (!r.found) throw notFound()
-    return r
+    if (!r.doc) throw notFound()
+    return { doc: r.doc, settings: r.settings }
   },
   head: ({ loaderData }) =>
     loaderData

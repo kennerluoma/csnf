@@ -33,7 +33,7 @@ export const eventCalendarSchema = defineType({
   ],
   preview: {
     select: { title: 'heading', view: 'view' },
-    prepare: ({ title, view }) => ({
+    prepare: ({ title, view }: { title?: string; view?: string }) => ({
       title: title ?? 'Events',
       subtitle: `Event calendar · ${view ?? 'both'}`,
     }),
