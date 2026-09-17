@@ -36,6 +36,10 @@ Ordered by risk. Prove the build agent on one design before wrapping it in an ap
 - `mapping.json`, manifest diff, touch-only-changed-nodes, seed-content merge rules.
 - **Exit:** three design edits (copy, add section, remove section) → three PRs; hand edits on `main` survive.
 
+## Phase 4b · Template v2 + system improvements — DONE 2026-09-17
+
+Content model, index blocks, forms, SEO, generated block inventory (doc 10, doc 11 items 2/7/9). Platform side: prompt refresh, two-pass agent, golden fixtures, budget, preview cleanup, Actions runner, operator onboarding (doc 11).
+
 ## Phase 5 · Later
 
 Figma plugin (groundwork in platform/apps/figma-plugin; needs loading in Figma desktop), mobile frames, Slack notifications, own-container runner, auto-merge on high confidence, per-client token scoping, teardown checklist tooling.

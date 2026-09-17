@@ -24,6 +24,7 @@ export const page = defineType({
       type: 'array',
       of: blockSchemaNames.map((name) => ({ type: name })),
     }),
+    defineField({ name: 'seo', type: 'seo' }),
   ],
   preview: { select: { title: 'title', subtitle: 'slug.current' } },
 })

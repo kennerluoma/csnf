@@ -21,7 +21,8 @@
     "seed": "node --env-file=.env --experimental-strip-types scripts/seed.ts",
     "pages": "node --env-file=.env --experimental-strip-types scripts/pages.ts",
     "extract": "node --env-file=.env --experimental-strip-types scripts/extract.ts",
-    "shot": "node --env-file=.env --experimental-strip-types scripts/shot.ts"
+    "shot": "node --env-file=.env --experimental-strip-types scripts/shot.ts",
+    "inventory": "node --experimental-strip-types scripts/inventory.ts"
   },
   "dependencies": {
     "@portabletext/react": "^8.0.1",

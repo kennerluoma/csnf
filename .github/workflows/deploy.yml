@@ -32,6 +32,30 @@ jobs:
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           command: deploy
 
+      - name: Worker secrets (contact form)
+        if: github.ref == 'refs/heads/main'
+        # Only the secrets that are set; wrangler refuses empty values. TURNSTILE_SITE_KEY is public and
+        # goes in as a plain var so the form can render the widget.
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          SANITY_WRITE_TOKEN: ${{ secrets.SANITY_WRITE_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          CONTACT_FROM: ${{ secrets.CONTACT_FROM }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+        run: |
+          node -e '
+            const names = ["SANITY_WRITE_TOKEN","RESEND_API_KEY","CONTACT_FROM","TURNSTILE_SECRET_KEY","TURNSTILE_SITE_KEY"];
+            const out = Object.fromEntries(names.filter(n => process.env[n]).map(n => [n, process.env[n]]));
+            require("fs").writeFileSync("secrets.json", JSON.stringify(out));
+            console.log("secrets:", Object.keys(out).join(", ") || "(none set)");
+          '
+          if [ "$(node -e 'console.log(Object.keys(require("./secrets.json")).length)')" != "0" ]; then
+            pnpm exec wrangler secret bulk secrets.json
+          fi
+          rm -f secrets.json
+
       - name: Build studio
         if: github.ref == 'refs/heads/main'
         # The site build leaves .wrangler/deploy/config.json in the root, which wrangler

@@ -7,16 +7,19 @@ import {
 import { SiteFooter } from '#/lib/SiteFooter'
 import { SiteHeader } from '#/lib/SiteHeader'
 import { getSiteSettings } from '#/lib/page'
+import { seoMeta } from '#/lib/seo'
 import appCss from '#/styles/app.css?url'
+import { Container, Heading, Section, Stack, Text } from '#/ui'
 
 export const Route = createRootRoute({
   loader: () => getSiteSettings(),
-  head: () => ({
+  head: ({ loaderData: settings }) => ({
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'Site' },
+      ...seoMeta({}, settings),
     ],
+    scripts: analyticsScripts(settings?.analyticsId),
     links: [
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       {
@@ -33,7 +36,43 @@ export const Route = createRootRoute({
   }),
   shellComponent: RootDocument,
   component: RootLayout,
+  notFoundComponent: NotFound,
 })
+
+function NotFound() {
+  return (
+    <Section>
+      <Container>
+        <Stack gap="sm">
+          <Heading level={1}>Page not found</Heading>
+          <Text muted>
+            The page you were looking for doesn't exist.{' '}
+            <a href="/">Go to the front page</a>.
+          </Text>
+        </Stack>
+      </Container>
+    </Section>
+  )
+}
+
+/* Cloudflare Web Analytics token (32 hex chars) or a GA4 measurement id (G-XXXX). */
+function analyticsScripts(id?: string) {
+  if (!id) return []
+  if (/^G-/.test(id))
+    return [
+      { src: `https://www.googletagmanager.com/gtag/js?id=${id}`, async: true },
+      {
+        children: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${id}')`,
+      },
+    ]
+  return [
+    {
+      src: 'https://static.cloudflareinsights.com/beacon.min.js',
+      defer: true,
+      'data-cf-beacon': JSON.stringify({ token: id }),
+    },
+  ]
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (

@@ -4,6 +4,8 @@ export const cardGridSchema = defineType({
   name: 'cardGrid',
   title: 'Card grid',
   type: 'object',
+  description:
+    'Repeated cards (title, body, image, link) in 2–4 columns with an optional heading. Use for features, services, team, logos-with-captions: any hand-entered repeated item that is not a CMS document.',
   fields: [
     defineField({ name: 'eyebrow', type: 'string' }),
     defineField({ name: 'heading', type: 'string' }),

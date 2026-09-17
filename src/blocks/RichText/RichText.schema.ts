@@ -4,6 +4,8 @@ export const richTextBlockSchema = defineType({
   name: 'richTextBlock',
   title: 'Rich text',
   type: 'object',
+  description:
+    'Portable Text with an optional heading. Use for prose sections: about text, statements, long copy.',
   fields: [
     defineField({ name: 'heading', type: 'string' }),
     defineField({ name: 'content', type: 'richText' }),

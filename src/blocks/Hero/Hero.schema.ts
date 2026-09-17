@@ -4,6 +4,8 @@ export const heroSchema = defineType({
   name: 'hero',
   title: 'Hero',
   type: 'object',
+  description:
+    'Page-top statement: eyebrow, heading, body, one CTA, one image. `split` = text beside image; `panel` = centred in a tinted rounded panel. Use for the first section of any route.',
   fields: [
     defineField({
       name: 'layout',

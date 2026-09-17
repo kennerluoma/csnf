@@ -32,3 +32,32 @@ export const richText = defineType({
   type: 'array',
   of: [{ type: 'block' }],
 })
+
+/* Per-document SEO overrides. Every field is optional; src/lib/seo.ts falls back to the
+   document's own title/description/image, then to siteSettings.seo. */
+export const seo = defineType({
+  name: 'seo',
+  title: 'SEO',
+  type: 'object',
+  options: { collapsible: true, collapsed: true },
+  fields: [
+    defineField({
+      name: 'title',
+      type: 'string',
+      description:
+        'Overrides the page title in the browser tab and search results.',
+    }),
+    defineField({ name: 'description', type: 'text', rows: 2 }),
+    defineField({
+      name: 'image',
+      type: 'imageWithAlt',
+      description: 'Social share image (1200×630 works best).',
+    }),
+    defineField({
+      name: 'noIndex',
+      type: 'boolean',
+      description: 'Ask search engines not to list this page.',
+      initialValue: false,
+    }),
+  ],
+})

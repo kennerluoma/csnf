@@ -42,8 +42,13 @@ type FigmaNode = {
   componentId?: string
 }
 
-const token = process.env.FIGMA_TOKEN
-if (!token) throw new Error('FIGMA_TOKEN is not set')
+// --normalise <manifest.json>: re-run only the normaliser on an existing manifest (e.g. one exported
+// by the Figma plugin, which never talks to the REST API). No token needed in that mode.
+const normaliseOnly = process.argv.includes('--normalise')
+  ? process.argv[process.argv.indexOf('--normalise') + 1]
+  : undefined
+const token = process.env.FIGMA_TOKEN ?? ''
+if (!token && !normaliseOnly) throw new Error('FIGMA_TOKEN is not set')
 const agency = JSON.parse(await readFile('agency.json', 'utf8')) as {
   figmaFileKey: string
 }
@@ -502,6 +507,84 @@ function mergeColours(
   return out
 }
 
+const normalisationRules = () => [
+  `spacing: base unit ${spacingBase}px learned from the design (candidates 4/5/6/8/10); values snap to the design's own frequent values (anchors) or the base grid within ~12%`,
+  'sections of the same type share gap/padding (mode wins within 20%)',
+  'radius → nearest of 0/2/4/6/8/10/12/16/20/24/32/999 within 20%',
+  'type sizes clustered within 10% (most-used wins), weights → 400/500/600/700/900',
+  'colours within RGB distance 12 merged into the most-used',
+]
+
+// ---- normalise-only mode ----
+if (normaliseOnly) {
+  type Tree = {
+    id: string
+    layout?: { gap: number; padding: Array<number> }
+    radius?: number | Array<number>
+    children?: Array<Tree>
+  }
+  const m = JSON.parse(await readFile(normaliseOnly, 'utf8')) as {
+    palette: {
+      colors: Array<{ hex: string; uses: number; styleName?: string }>
+      fonts: Array<{
+        family: string
+        size: number
+        weight: number
+        uses: number
+      }>
+      radii: Array<{ value: number; uses: number }>
+      spacing: Array<{ value: number; uses: number }>
+    }
+    routes: Array<{
+      sections: Array<{
+        id: string
+        type: string
+        layout?: { gap: number; padding: Array<number> }
+        tree?: Tree
+      }>
+    }>
+    normalisation?: { snapped?: Array<unknown> }
+  }
+  if (m.normalisation?.snapped?.length)
+    throw new Error(`${normaliseOnly} is already normalised`)
+  for (const s of m.palette.spacing) spacing.set(s.value, s.uses)
+  learnSpacing()
+  const walk = (n: Tree) => {
+    n.layout = snapLayout(n.id, n.layout)
+    n.radius = snapRadius(n.id, n.radius)
+    if (n.layout === undefined) delete n.layout
+    if (n.radius === undefined) delete n.radius
+    n.children?.forEach(walk)
+  }
+  for (const r of m.routes) {
+    for (const s of r.sections) {
+      s.layout = snapLayout(s.id, s.layout)
+      if (s.layout === undefined) delete s.layout
+      if (s.tree) walk(s.tree)
+    }
+    harmoniseSections(r.sections)
+  }
+  m.palette.colors = mergeColours(m.palette.colors).sort(
+    (a, b) => b.uses - a.uses,
+  )
+  m.palette.fonts = typeScale(m.palette.fonts).sort((a, b) => b.uses - a.uses)
+  const out = {
+    ...m,
+    fidelity,
+    normalisation: {
+      base: fidelity === 'normalised' ? spacingBase : null,
+      anchors: fidelity === 'normalised' ? spacingAnchors : [],
+      rules: fidelity === 'normalised' ? normalisationRules() : [],
+      snapped: snapped.list,
+    },
+  }
+  await writeFile(normaliseOnly, JSON.stringify(out, null, 2) + '\n')
+  console.log(
+    `normalised ${normaliseOnly}: base ${spacingBase}, anchors ${spacingAnchors.join('/')}, ${snapped.list.length} value(s) snapped`,
+  )
+  process.exit(0)
+}
+
 // ---- main ----
 // --from-file <figma.json>: work from a saved REST response (offline / rate-limited); skips image export.
 const fromFile = process.argv.includes('--from-file')
@@ -647,16 +730,7 @@ const manifest = {
   normalisation: {
     base: fidelity === 'normalised' ? spacingBase : null,
     anchors: fidelity === 'normalised' ? spacingAnchors : [],
-    rules:
-      fidelity === 'normalised'
-        ? [
-            `spacing: base unit ${spacingBase}px learned from the design (candidates 4/5/6/8/10); values snap to the design's own frequent values (anchors) or the base grid within ~12%`,
-            'sections of the same type share gap/padding (mode wins within 20%)',
-            'radius → nearest of 0/2/4/6/8/10/12/16/20/24/32/999 within 20%',
-            'type sizes clustered within 10% (most-used wins), weights → 400/500/600/700/900',
-            'colours within RGB distance 12 merged into the most-used',
-          ]
-        : [],
+    rules: fidelity === 'normalised' ? normalisationRules() : [],
     snapped: snapped.list,
   },
   components: Object.entries(file.components).map(([id, c]) => ({

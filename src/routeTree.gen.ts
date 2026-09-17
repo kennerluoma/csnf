@@ -11,6 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ApiContactRouteImport } from './routes/api/contact'
+import { Route as ArtistsSlugRouteImport } from './routes/artists/$slug'
+import { Route as EventsSlugRouteImport } from './routes/events/$slug'
+import { Route as ExhibitionsSlugRouteImport } from './routes/exhibitions/$slug'
+import { Route as IcsEventsRouteImport } from './routes/ics/events'
+import { Route as NewsSlugRouteImport } from './routes/news/$slug'
+import { Route as WorkSlugRouteImport } from './routes/work/$slug'
+import { Route as IcsEventSlugRouteImport } from './routes/ics/event.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +32,158 @@ const SplatRoute = SplatRouteImport.update({
   path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiContactRoute = ApiContactRouteImport.update({
+  id: '/api/contact',
+  path: '/api/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtistsSlugRoute = ArtistsSlugRouteImport.update({
+  id: '/artists/$slug',
+  path: '/artists/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsSlugRoute = EventsSlugRouteImport.update({
+  id: '/events/$slug',
+  path: '/events/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExhibitionsSlugRoute = ExhibitionsSlugRouteImport.update({
+  id: '/exhibitions/$slug',
+  path: '/exhibitions/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IcsEventsRoute = IcsEventsRouteImport.update({
+  id: '/ics/events',
+  path: '/ics/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsSlugRoute = NewsSlugRouteImport.update({
+  id: '/news/$slug',
+  path: '/news/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkSlugRoute = WorkSlugRouteImport.update({
+  id: '/work/$slug',
+  path: '/work/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IcsEventSlugRoute = IcsEventSlugRouteImport.update({
+  id: '/ics/event/$slug',
+  path: '/ics/event/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/contact': typeof ApiContactRoute
+  '/artists/$slug': typeof ArtistsSlugRoute
+  '/events/$slug': typeof EventsSlugRoute
+  '/exhibitions/$slug': typeof ExhibitionsSlugRoute
+  '/ics/events': typeof IcsEventsRoute
+  '/news/$slug': typeof NewsSlugRoute
+  '/work/$slug': typeof WorkSlugRoute
+  '/ics/event/$slug': typeof IcsEventSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/contact': typeof ApiContactRoute
+  '/artists/$slug': typeof ArtistsSlugRoute
+  '/events/$slug': typeof EventsSlugRoute
+  '/exhibitions/$slug': typeof ExhibitionsSlugRoute
+  '/ics/events': typeof IcsEventsRoute
+  '/news/$slug': typeof NewsSlugRoute
+  '/work/$slug': typeof WorkSlugRoute
+  '/ics/event/$slug': typeof IcsEventSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/api/contact': typeof ApiContactRoute
+  '/artists/$slug': typeof ArtistsSlugRoute
+  '/events/$slug': typeof EventsSlugRoute
+  '/exhibitions/$slug': typeof ExhibitionsSlugRoute
+  '/ics/events': typeof IcsEventsRoute
+  '/news/$slug': typeof NewsSlugRoute
+  '/work/$slug': typeof WorkSlugRoute
+  '/ics/event/$slug': typeof IcsEventSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$'
+  fullPaths:
+    | '/'
+    | '/$'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/api/contact'
+    | '/artists/$slug'
+    | '/events/$slug'
+    | '/exhibitions/$slug'
+    | '/ics/events'
+    | '/news/$slug'
+    | '/work/$slug'
+    | '/ics/event/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$'
-  id: '__root__' | '/' | '/$'
+  to:
+    | '/'
+    | '/$'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/api/contact'
+    | '/artists/$slug'
+    | '/events/$slug'
+    | '/exhibitions/$slug'
+    | '/ics/events'
+    | '/news/$slug'
+    | '/work/$slug'
+    | '/ics/event/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/$'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/api/contact'
+    | '/artists/$slug'
+    | '/events/$slug'
+    | '/exhibitions/$slug'
+    | '/ics/events'
+    | '/news/$slug'
+    | '/work/$slug'
+    | '/ics/event/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiContactRoute: typeof ApiContactRoute
+  ArtistsSlugRoute: typeof ArtistsSlugRoute
+  EventsSlugRoute: typeof EventsSlugRoute
+  ExhibitionsSlugRoute: typeof ExhibitionsSlugRoute
+  IcsEventsRoute: typeof IcsEventsRoute
+  NewsSlugRoute: typeof NewsSlugRoute
+  WorkSlugRoute: typeof WorkSlugRoute
+  IcsEventSlugRoute: typeof IcsEventSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +202,92 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/contact': {
+      id: '/api/contact'
+      path: '/api/contact'
+      fullPath: '/api/contact'
+      preLoaderRoute: typeof ApiContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artists/$slug': {
+      id: '/artists/$slug'
+      path: '/artists/$slug'
+      fullPath: '/artists/$slug'
+      preLoaderRoute: typeof ArtistsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events/$slug': {
+      id: '/events/$slug'
+      path: '/events/$slug'
+      fullPath: '/events/$slug'
+      preLoaderRoute: typeof EventsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exhibitions/$slug': {
+      id: '/exhibitions/$slug'
+      path: '/exhibitions/$slug'
+      fullPath: '/exhibitions/$slug'
+      preLoaderRoute: typeof ExhibitionsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ics/events': {
+      id: '/ics/events'
+      path: '/ics/events'
+      fullPath: '/ics/events'
+      preLoaderRoute: typeof IcsEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news/$slug': {
+      id: '/news/$slug'
+      path: '/news/$slug'
+      fullPath: '/news/$slug'
+      preLoaderRoute: typeof NewsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/work/$slug': {
+      id: '/work/$slug'
+      path: '/work/$slug'
+      fullPath: '/work/$slug'
+      preLoaderRoute: typeof WorkSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ics/event/$slug': {
+      id: '/ics/event/$slug'
+      path: '/ics/event/$slug'
+      fullPath: '/ics/event/$slug'
+      preLoaderRoute: typeof IcsEventSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiContactRoute: ApiContactRoute,
+  ArtistsSlugRoute: ArtistsSlugRoute,
+  EventsSlugRoute: EventsSlugRoute,
+  ExhibitionsSlugRoute: ExhibitionsSlugRoute,
+  IcsEventsRoute: IcsEventsRoute,
+  NewsSlugRoute: NewsSlugRoute,
+  WorkSlugRoute: WorkSlugRoute,
+  IcsEventSlugRoute: IcsEventSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

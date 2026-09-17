@@ -1,5 +1,7 @@
 # 10 · Template v2: the content model most clients need
 
+**Status (2026-09-17): shipped in this repo**, not as a separate template. What landed: the six document types below (plus `eventSeries` as the event category and `submission` for contact forms), five index blocks (`artworkGrid`, `artistList`, `exhibitionList`, `eventCalendar`, `postList`) fed by server-side resolvers (`src/blocks/resolvers.ts`), detail routes per type, default index pages when the designer didn't draw one (`src/lib/defaults.ts`), URL-param filters, a month-grid `Calendar` primitive, iCal feeds (`/ics/events`, `/ics/event/<slug>`), `contactForm` → `/api/contact` (honeypot + optional Turnstile, `submission` docs, Resend email), `newsletterSignup` → provider action URL, SEO (`seo` object, `seoMeta()`, sitemap, robots), grouped desk structure, and seed content for every type. Not done: event recurrence, Presentation/click-to-edit, per-type preview URLs, the one-page client handover doc. Existing v1 client repos are unaffected; `agency build --refresh-prompt` brings them the new prompt and AGENTS.md but not the schema.
+
 Today the starter has `page` (blocks), `siteSettings`, three example blocks, and nothing else. Most clients are galleries, studios, theatres, small cultural orgs. The next template version ships the content types they nearly all need, so the agent maps design sections onto them instead of inventing schema.
 
 ## Content types
@@ -35,7 +37,7 @@ All indexes are blocks too (`artworkGrid`, `exhibitionList`, `eventCalendar`, `p
 
 ## Migration
 
-Existing client repos generated from v1 keep working; v2 is a new template repo (`agency-starter-v2`) selected at provisioning (`TEMPLATE_REPO`). The extractor and prompt are shared; only `AGENTS.md`'s block inventory grows.
+Existing client repos generated from v1 keep working; v2 replaced v1 in this template repo (new projects get it; old ones would need the schema, blocks, routes and `src/lib` copied over, which is a manual job). The extractor and prompt are shared; `AGENTS.md`'s block inventory is generated (`pnpm inventory`).
 
 ## Not in v2
 
