@@ -6,4 +6,6 @@ Task: propose the smallest set of changes to this repo that would have prevented
 2. A prompt rule in translate.md / plan.md / fix.md when the lesson changes what the agent must DO in a step, not just what it should know.
 3. A template change (a primitive option, a schema field, a resolver) when the same code was written by hand in 2+ projects. Implement it; keep it small; run `pnpm typecheck && pnpm lint && pnpm build && pnpm inventory`.
 
+4. Editing: you are the only editor of AGENTS.md, the prompts and lessons.md; no person maintains them by hand, so they must get better AND stay short. Every run: merge duplicate or overlapping rules; when a rule is now enforced by a check (lint, the build, `pnpm budget`, CI), cut it to one line naming the check; delete advice the history shows agents already follow unprompted; move detail that only matters in one step out of AGENTS.md into that step's prompt. AGENTS.md stays under 2,500 words excluding the block inventory; lessons.md under 60 lines. If a history entry shows an agent asked the operator something it could have decided, add the decision as a lesson.
+
 Do not touch anything else. Do not restyle existing code. Write design/learn-report.md: what you changed and which history entries drove each change, then the recurring issues you chose NOT to encode and why. Commit with messages starting `learn:`.
