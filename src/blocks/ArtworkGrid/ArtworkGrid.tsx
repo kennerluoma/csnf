@@ -10,42 +10,18 @@ import {
   Stack,
   Text,
 } from '#/ui'
-import type { ArtworkCard, Link } from '#/sanity/types'
+import type { Resolved } from '#/blocks/resolvers'
 
-export type ArtworkGridProps = {
-  eyebrow?: string
-  heading?: string
-  intro?: string
-  columns?: 2 | 3 | 4
-  limit?: number
-  featuredOnly?: boolean
-  collection?: string
-  showFilters?: boolean
-  cta?: Link
-  /* resolved server-side (src/blocks/resolvers.ts) */
-  items?: Array<ArtworkCard>
-  filters?: {
-    artists: Array<{ slug: string; name: string }>
-    years: Array<number>
-    media: Array<string>
-    collections: Array<string>
-    tags: Array<string>
-  }
-  values?: Record<string, string | undefined>
-  path?: string
-}
+export type ArtworkGridProps = Resolved<'artworkGrid'>
 
 export function ArtworkGrid({
   eyebrow,
   heading,
   intro,
-  columns = 3,
-  showFilters = true,
+  columns,
+  showFilters,
   cta,
-  items = [],
-  filters,
-  values = {},
-  path = '/work',
+  data: { items, filters, values, path },
 }: ArtworkGridProps) {
   return (
     <Section>
@@ -58,7 +34,7 @@ export function ArtworkGrid({
               {intro && <Text muted>{intro}</Text>}
             </Stack>
           )}
-          {showFilters && filters && (
+          {showFilters !== false && filters && (
             <FilterBar
               action={path}
               values={values}
@@ -68,7 +44,7 @@ export function ArtworkGrid({
                   label: 'Artist',
                   options: filters.artists.map((a) => ({
                     value: a.slug,
-                    label: a.name,
+                    label: a.name ?? a.slug,
                   })),
                 },
                 {
@@ -101,7 +77,7 @@ export function ArtworkGrid({
             />
           )}
           {items.length ? (
-            <Grid columns={columns}>
+            <Grid columns={columns ?? 3}>
               {items.map((a) => (
                 <Card
                   key={a._id}
@@ -117,7 +93,7 @@ export function ArtworkGrid({
           ) : (
             <Text muted>No artworks yet.</Text>
           )}
-          {cta && (
+          {cta?.href && (
             <Button href={cta.href} variant="secondary" className="self-start">
               {cta.label}
             </Button>

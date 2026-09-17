@@ -1,5 +1,6 @@
 import { Brand } from './Brand'
 import { Container, NavLink, Section } from '#/ui'
+import { hasHref } from '#/sanity/guards'
 import type { SiteSettings } from '#/sanity/types'
 
 export function SiteHeader({ settings }: { settings: SiteSettings | null }) {
@@ -9,7 +10,7 @@ export function SiteHeader({ settings }: { settings: SiteSettings | null }) {
         <Brand settings={settings} />
         {!!settings?.nav?.length && (
           <nav className="flex items-center gap-5">
-            {settings.nav.map((item) => (
+            {settings.nav.filter(hasHref).map((item) => (
               <NavLink key={item.href} href={item.href}>
                 {item.label}
               </NavLink>

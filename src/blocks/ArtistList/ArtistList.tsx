@@ -8,21 +8,15 @@ import {
   Stack,
   Text,
 } from '#/ui'
-import type { ArtistRef, SanityImage } from '#/sanity/types'
+import type { Resolved } from '#/blocks/resolvers'
 
-export type ArtistListProps = {
-  eyebrow?: string
-  heading?: string
-  columns?: 2 | 3 | 4
-  /* resolved */
-  items?: Array<ArtistRef & { portrait?: SanityImage }>
-}
+export type ArtistListProps = Resolved<'artistList'>
 
 export function ArtistList({
   eyebrow,
   heading,
-  columns = 4,
-  items = [],
+  columns,
+  data: { items },
 }: ArtistListProps) {
   return (
     <Section>
@@ -35,7 +29,7 @@ export function ArtistList({
             </Stack>
           )}
           {items.length ? (
-            <Grid columns={columns}>
+            <Grid columns={columns ?? 4}>
               {items.map((a) => (
                 <Card
                   key={a._id}

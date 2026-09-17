@@ -32,7 +32,7 @@ export const fmtMonth = (year: number, month: number) =>
   monthYear.format(new Date(Date.UTC(year, month - 1, 15)))
 
 /* "12 – 20 Sep 2026", "28 Sep – 3 Oct 2026", "12 Sep 2026" */
-export function fmtRange(start: string, end?: string) {
+export function fmtRange(start: string, end?: string | null) {
   if (!end || end.slice(0, 10) === start.slice(0, 10)) return fmtDate(start)
   const a = new Date(start)
   const b = new Date(end)
@@ -43,7 +43,11 @@ export function fmtRange(start: string, end?: string) {
 }
 
 /* "Sat 12 Sep 2026, 19:00 – 21:00" for events. */
-export function fmtEventTime(start: string, end?: string, allDay?: boolean) {
+export function fmtEventTime(
+  start: string,
+  end?: string | null,
+  allDay?: boolean | null,
+) {
   const d = `${weekday.format(new Date(start))} ${fmtDate(start)}`
   if (allDay)
     return end && end.slice(0, 10) !== start.slice(0, 10)
@@ -58,7 +62,11 @@ export function fmtEventTime(start: string, end?: string, allDay?: boolean) {
 }
 
 /* Live state for events and broadcasts: `now` is passed in so server and client agree. */
-export const isLive = (start: string, end: string | undefined, now: number) =>
+export const isLive = (
+  start: string,
+  end: string | null | undefined,
+  now: number,
+) =>
   Date.parse(start) <= now &&
   (end ? Date.parse(end) > now : now - Date.parse(start) < 3 * 3_600_000)
 export const nextUpcoming = <T extends { start: string }>(
@@ -102,7 +110,7 @@ export function monthGrid(
     }
     rows.push(row)
     // stop after the month ends on a row boundary
-    if (row[6].outside && r >= 3) break
+    if (row[6]?.outside && r >= 3) break
   }
   return rows
 }
@@ -132,11 +140,11 @@ export function parseMonth(value?: string) {
 export function toIcs(
   events: Array<{
     slug: string
-    title: string
+    title: string | null
     start: string
-    end?: string
-    allDay?: boolean
-    location?: string
+    end?: string | null
+    allDay?: boolean | null
+    location?: string | null
     description?: string
   }>,
   opts: { name: string; origin: string },
@@ -168,7 +176,7 @@ export function toIcs(
       lines.push(`DTSTART:${stamp(new Date(e.start).toISOString())}`)
       if (e.end) lines.push(`DTEND:${stamp(new Date(e.end).toISOString())}`)
     }
-    lines.push(`SUMMARY:${esc(e.title)}`)
+    lines.push(`SUMMARY:${esc(e.title ?? '')}`)
     if (e.location) lines.push(`LOCATION:${esc(e.location)}`)
     if (e.description) lines.push(`DESCRIPTION:${esc(e.description)}`)
     lines.push(`URL:${opts.origin}/events/${e.slug}`)

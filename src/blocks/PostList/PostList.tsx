@@ -10,24 +10,16 @@ import {
   Stack,
   Text,
 } from '#/ui'
-import type { Link, PostCard } from '#/sanity/types'
+import type { Resolved } from '#/blocks/resolvers'
 
-export type PostListProps = {
-  eyebrow?: string
-  heading?: string
-  limit?: number
-  columns?: 2 | 3
-  cta?: Link
-  /* resolved */
-  items?: Array<PostCard>
-}
+export type PostListProps = Resolved<'postList'>
 
 export function PostList({
   eyebrow,
   heading,
-  columns = 3,
+  columns,
   cta,
-  items = [],
+  data: { items },
 }: PostListProps) {
   return (
     <Section>
@@ -40,7 +32,7 @@ export function PostList({
             </Stack>
           )}
           {items.length ? (
-            <Grid columns={columns}>
+            <Grid columns={columns ?? 3}>
               {items.map((p) => (
                 <Card
                   key={p._id}
@@ -48,7 +40,7 @@ export function PostList({
                   title={p.title}
                   image={p.image}
                   aspect="16/9"
-                  meta={fmtDate(p.date)}
+                  meta={p.date ? fmtDate(p.date) : undefined}
                   excerpt={p.excerpt}
                 />
               ))}
@@ -56,7 +48,7 @@ export function PostList({
           ) : (
             <Text muted>No posts yet.</Text>
           )}
-          {cta && (
+          {cta?.href && (
             <Button href={cta.href} variant="secondary" className="self-start">
               {cta.label}
             </Button>

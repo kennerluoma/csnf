@@ -9,35 +9,19 @@ import {
   SubmitButton,
   Text,
 } from '#/ui'
-import type { RichTextValue } from '#/sanity/types'
+import type { Resolved } from '#/blocks/resolvers'
 
-export type ContactFormProps = {
-  eyebrow?: string
-  heading?: string
-  intro?: string
-  showSubject?: boolean
-  buttonLabel?: string
-  successMessage?: string
-  aside?: RichTextValue
-  /* resolved */
-  sent?: boolean
-  error?: string
-  path?: string
-  turnstileSiteKey?: string
-}
+export type ContactFormProps = Resolved<'contactForm'>
 
 export function ContactForm({
   eyebrow,
   heading,
   intro,
-  showSubject = true,
-  buttonLabel = 'Send message',
-  successMessage = 'Thanks, your message has been sent.',
+  showSubject,
+  buttonLabel,
+  successMessage,
   aside,
-  sent,
-  error,
-  path = '/',
-  turnstileSiteKey,
+  data: { sent, error, path, turnstileSiteKey },
 }: ContactFormProps) {
   return (
     <Section id="contact">
@@ -50,7 +34,7 @@ export function ContactForm({
         </Stack>
         {sent ? (
           <Text className="self-start rounded-md bg-surface-alt p-6">
-            {successMessage}
+            {successMessage ?? 'Thanks, your message has been sent.'}
           </Text>
         ) : (
           <form
@@ -75,7 +59,7 @@ export function ContactForm({
               required
               autoComplete="email"
             />
-            {showSubject && <Field label="Subject" name="subject" />}
+            {showSubject !== false && <Field label="Subject" name="subject" />}
             <Field label="Message" name="message" rows={6} required />
             {turnstileSiteKey && (
               <>
@@ -92,7 +76,7 @@ export function ContactForm({
                 {error}
               </Text>
             )}
-            <SubmitButton>{buttonLabel}</SubmitButton>
+            <SubmitButton>{buttonLabel ?? 'Send message'}</SubmitButton>
           </form>
         )}
       </Container>

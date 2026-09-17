@@ -8,6 +8,7 @@ import {
   SubmitButton,
   Text,
 } from '#/ui'
+import type { Resolved } from '#/blocks/resolvers'
 import type { Newsletter } from '#/sanity/types'
 
 /* Field name each provider expects for the email address. */
@@ -19,24 +20,17 @@ const EMAIL_FIELD: Record<NonNullable<Newsletter['provider']>, string> = {
   generic: 'email',
 }
 
-export type NewsletterSignupProps = {
-  eyebrow?: string
-  heading?: string
-  body?: string
-  buttonLabel?: string
-  tone?: 'default' | 'alt' | 'ink'
-  /* resolved from siteSettings */
-  newsletter?: Newsletter
-}
+export type NewsletterSignupProps = Resolved<'newsletterSignup'>
 
 export function NewsletterSignup({
   eyebrow,
   heading,
   body,
-  buttonLabel = 'Subscribe',
-  tone = 'alt',
-  newsletter,
+  buttonLabel,
+  tone: toneProp,
+  data: { newsletter },
 }: NewsletterSignupProps) {
+  const tone = toneProp ?? 'alt'
   const action = newsletter?.actionUrl
   const field = EMAIL_FIELD[newsletter?.provider ?? 'generic']
   return (
@@ -72,7 +66,7 @@ export function NewsletterSignup({
                 className="hidden"
               />
             )}
-            <SubmitButton>{buttonLabel}</SubmitButton>
+            <SubmitButton>{buttonLabel ?? 'Subscribe'}</SubmitButton>
           </form>
         ) : (
           <Text size="small" muted={tone !== 'ink'}>

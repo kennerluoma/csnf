@@ -18,8 +18,8 @@ import {
 export const Route = createFileRoute('/news/$slug')({
   loader: async ({ params }) => {
     const r = await getPost({ data: params.slug })
-    if (!r.found) throw notFound()
-    return r
+    if (!r.doc) throw notFound()
+    return { doc: r.doc, settings: r.settings }
   },
   head: ({ loaderData }) =>
     loaderData
@@ -47,7 +47,7 @@ function PostPage() {
         <Container className="max-w-3xl">
           <Stack gap="md">
             <NavLink href="/news">← News</NavLink>
-            <Eyebrow>{fmtDate(doc.date)}</Eyebrow>
+            {doc.date && <Eyebrow>{fmtDate(doc.date)}</Eyebrow>}
             <Heading level={1}>{doc.title}</Heading>
             <Image image={doc.image} width={1400} className="aspect-[16/9]" />
             <RichText value={doc.body} />

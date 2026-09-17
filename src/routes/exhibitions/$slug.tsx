@@ -1,6 +1,7 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { fmtRange } from '#/lib/dates'
 import { getExhibition } from '#/lib/page'
+import { hasHref } from '#/sanity/guards'
 import { seoMeta } from '#/lib/seo'
 import {
   A,
@@ -20,8 +21,8 @@ import {
 export const Route = createFileRoute('/exhibitions/$slug')({
   loader: async ({ params }) => {
     const r = await getExhibition({ data: params.slug })
-    if (!r.found) throw notFound()
-    return r
+    if (!r.doc) throw notFound()
+    return { doc: r.doc, settings: r.settings }
   },
   head: ({ loaderData }) =>
     loaderData
@@ -81,7 +82,7 @@ function ExhibitionPage() {
                 <Text size="small" muted>
                   Press
                 </Text>
-                {doc.pressLinks.map((l) => (
+                {doc.pressLinks.filter(hasHref).map((l) => (
                   <NavLink key={l.href} href={l.href}>
                     {l.label}
                   </NavLink>
@@ -91,7 +92,7 @@ function ExhibitionPage() {
           </Stack>
         </Container>
       </Section>
-      {doc.artworks?.length ? (
+      {doc.artworks.length ? (
         <Section tone="alt">
           <Container>
             <Stack gap="lg">

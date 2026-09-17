@@ -9,19 +9,12 @@ import {
   Stack,
   Text,
 } from '#/ui'
-import type { Link, SanityImage } from '#/sanity/types'
+import type { BlockOf } from '#/sanity/types'
 
-export type HeroProps = {
-  layout?: 'split' | 'panel'
-  eyebrow?: string
-  heading: string
-  body?: string
-  cta?: Link
-  image?: SanityImage
-}
+export type HeroProps = BlockOf<'hero'>
 
 export function Hero({
-  layout = 'split',
+  layout,
   eyebrow,
   heading,
   body,
@@ -36,7 +29,7 @@ export function Hero({
             {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
             <Heading level={1}>{heading}</Heading>
             {body && <Text muted>{body}</Text>}
-            {cta && <Button href={cta.href}>{cta.label}</Button>}
+            {cta?.href && <Button href={cta.href}>{cta.label}</Button>}
             <Image image={image} width={1200} className="max-w-2xl" />
           </Panel>
         </Container>
@@ -50,7 +43,7 @@ export function Hero({
           {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
           <Heading level={1}>{heading}</Heading>
           {body && <Text muted>{body}</Text>}
-          {cta && <Button href={cta.href}>{cta.label}</Button>}
+          {cta?.href && <Button href={cta.href}>{cta.label}</Button>}
         </Stack>
         <Image image={image} width={1200} />
       </Container>

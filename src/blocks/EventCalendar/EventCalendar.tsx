@@ -1,5 +1,4 @@
 import { fmtEventTime, fmtMonth, fmtTime, weekdays } from '#/lib/dates'
-import type { MonthCell } from '#/lib/dates'
 import {
   Button,
   Calendar,
@@ -14,44 +13,19 @@ import {
   Stack,
   Text,
 } from '#/ui'
-import type { EventCard, Link } from '#/sanity/types'
+import type { Resolved } from '#/blocks/resolvers'
 
-export type EventCalendarProps = {
-  eyebrow?: string
-  heading?: string
-  view?: 'list' | 'month' | 'both'
-  limit?: number
-  showFilters?: boolean
-  cta?: Link
-  /* resolved */
-  month?: {
-    year: number
-    month: number
-    key: string
-    prev: string
-    next: string
-    weeks: Array<Array<MonthCell>>
-  }
-  inMonth?: Array<EventCard>
-  upcoming?: Array<EventCard>
-  series?: Array<{ slug: string; title: string }>
-  values?: Record<string, string | undefined>
-  path?: string
-}
+export type EventCalendarProps = Resolved<'eventCalendar'>
 
 export function EventCalendar({
   eyebrow,
   heading,
-  view = 'both',
-  showFilters = true,
+  view: viewProp,
+  showFilters,
   cta,
-  month,
-  inMonth = [],
-  upcoming = [],
-  series = [],
-  values = {},
-  path = '/events',
+  data: { month, inMonth, upcoming, series, values, path },
 }: EventCalendarProps) {
+  const view = viewProp ?? 'both'
   const qs = (m: string) =>
     `${path}?month=${m}${values.series ? `&series=${values.series}` : ''}`
   const days: Record<
@@ -62,7 +36,7 @@ export function EventCalendar({
     const iso = e.start.slice(0, 10)
     ;(days[iso] ??= []).push({
       href: `/events/${e.slug}`,
-      title: e.title,
+      title: e.title ?? '',
       time: e.allDay ? undefined : fmtTime(e.start),
     })
   }
@@ -76,7 +50,7 @@ export function EventCalendar({
               {heading && <Heading level={2}>{heading}</Heading>}
             </Stack>
           )}
-          {showFilters && series.length > 0 && (
+          {showFilters !== false && series.length > 0 && (
             <FilterBar
               action={path}
               values={{ series: values.series }}
@@ -86,13 +60,13 @@ export function EventCalendar({
                   label: 'Series',
                   options: series.map((s) => ({
                     value: s.slug,
-                    label: s.title,
+                    label: s.title ?? s.slug,
                   })),
                 },
               ]}
             />
           )}
-          {view !== 'list' && month && (
+          {view !== 'list' && (
             <Stack gap="sm">
               <div className="flex items-center justify-between">
                 <NavLink href={qs(month.prev)}>← Previous</NavLink>
@@ -127,7 +101,7 @@ export function EventCalendar({
             </Stack>
           )}
           <div className="flex flex-wrap gap-4">
-            {cta && (
+            {cta?.href && (
               <Button href={cta.href} variant="secondary">
                 {cta.label}
               </Button>

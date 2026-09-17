@@ -1,8 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
 import { resolveBlocks } from '#/blocks/resolvers'
+import type { ResolvedBlock } from '#/blocks/resolvers'
 import { defaultPage } from '#/lib/defaults'
 import { staticData } from '#/lib/staticData'
 import { client } from '#/sanity/client'
+import { hasSlug } from '#/sanity/guards'
 import {
   artistBySlugQuery,
   artworkBySlugQuery,
@@ -12,15 +14,10 @@ import {
   postBySlugQuery,
   siteSettingsQuery,
 } from '#/sanity/queries.gen'
-import type {
-  ArtistDoc,
-  ArtworkDoc,
-  EventDoc,
-  ExhibitionDoc,
-  PageDoc,
-  PostDoc,
-  SiteSettings,
-} from '#/sanity/types'
+import type { PageDoc } from '#/sanity/types'
+export type ResolvedPage = Omit<PageDoc, 'blocks'> & {
+  blocks: Array<ResolvedBlock>
+}
 
 export type PageInput = {
   slug: string
@@ -34,8 +31,8 @@ export const getPage = createServerFn({ method: 'GET' })
   .inputValidator((input: PageInput) => input)
   .handler(async ({ data: { slug, search = {} } }) => {
     const [doc, settings] = await Promise.all([
-      client.fetch<PageDoc | null>(pageBySlugQuery, { slug }),
-      client.fetch<SiteSettings | null>(siteSettingsQuery),
+      client.fetch(pageBySlugQuery, { slug }),
+      client.fetch(siteSettingsQuery),
     ])
     const page = doc ?? defaultPage(slug)
     if (!page) return { page: null, settings }
@@ -52,35 +49,84 @@ export const getPage = createServerFn({ method: 'GET' })
 export const getSiteSettings = createServerFn({ method: 'GET' })
   .middleware([staticData])
   .handler(async () => {
-    return client.fetch<SiteSettings | null>(siteSettingsQuery)
+    return client.fetch(siteSettingsQuery)
   })
 
-async function docBySlug<T>(query: string, slug: string) {
-  const [doc, settings] = await Promise.all([
-    client.fetch<T | null>(query, { slug }),
-    client.fetch<SiteSettings | null>(siteSettingsQuery),
-  ])
-  return { doc: doc as T, settings, found: !!doc }
-}
+/* Detail documents. `doc` is null when nothing matches (the route answers 404). The slug comes
+   from the input, which the query matched, so it is a string here rather than `string | null`;
+   events and exhibitions also need their start date to be shown at all. */
 const slugInput = (slug: string) => slug
+const settings = () => client.fetch(siteSettingsQuery)
 
 export const getArtwork = createServerFn({ method: 'GET' })
   .middleware([staticData])
   .inputValidator(slugInput)
-  .handler(({ data }) => docBySlug<ArtworkDoc>(artworkBySlugQuery, data))
+  .handler(async ({ data: slug }) => {
+    const [doc, s] = await Promise.all([
+      client.fetch(artworkBySlugQuery, { slug }),
+      settings(),
+    ])
+    return { doc: doc && { ...doc, slug }, settings: s }
+  })
 export const getArtist = createServerFn({ method: 'GET' })
   .middleware([staticData])
   .inputValidator(slugInput)
-  .handler(({ data }) => docBySlug<ArtistDoc>(artistBySlugQuery, data))
+  .handler(async ({ data: slug }) => {
+    const [doc, s] = await Promise.all([
+      client.fetch(artistBySlugQuery, { slug }),
+      settings(),
+    ])
+    return {
+      doc: doc && {
+        ...doc,
+        slug,
+        artworks: doc.artworks.filter(hasSlug),
+      },
+      settings: s,
+    }
+  })
 export const getExhibition = createServerFn({ method: 'GET' })
   .middleware([staticData])
   .inputValidator(slugInput)
-  .handler(({ data }) => docBySlug<ExhibitionDoc>(exhibitionBySlugQuery, data))
+  .handler(async ({ data: slug }) => {
+    const [doc, s] = await Promise.all([
+      client.fetch(exhibitionBySlugQuery, { slug }),
+      settings(),
+    ])
+    return {
+      doc:
+        doc && doc.start !== null
+          ? {
+              ...doc,
+              slug,
+              start: doc.start,
+              artworks: (doc.artworks ?? []).filter(hasSlug),
+            }
+          : null,
+      settings: s,
+    }
+  })
 export const getEvent = createServerFn({ method: 'GET' })
   .middleware([staticData])
   .inputValidator(slugInput)
-  .handler(({ data }) => docBySlug<EventDoc>(eventBySlugQuery, data))
+  .handler(async ({ data: slug }) => {
+    const [doc, s] = await Promise.all([
+      client.fetch(eventBySlugQuery, { slug }),
+      settings(),
+    ])
+    return {
+      doc:
+        doc && doc.start !== null ? { ...doc, slug, start: doc.start } : null,
+      settings: s,
+    }
+  })
 export const getPost = createServerFn({ method: 'GET' })
   .middleware([staticData])
   .inputValidator(slugInput)
-  .handler(({ data }) => docBySlug<PostDoc>(postBySlugQuery, data))
+  .handler(async ({ data: slug }) => {
+    const [doc, s] = await Promise.all([
+      client.fetch(postBySlugQuery, { slug }),
+      settings(),
+    ])
+    return { doc: doc && { ...doc, slug }, settings: s }
+  })

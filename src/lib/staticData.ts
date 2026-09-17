@@ -39,7 +39,25 @@ const stable = (v: unknown): unknown =>
 export const dataUrl = async (id: string, data: unknown) =>
   `/static-data/${await hash(`${id}:${JSON.stringify(stable(data ?? null))}`)}.json`
 
-const seen = new Map<string, Promise<{ result: unknown } | null>>()
+type DataFile = { result: unknown }
+const isDataFile = (v: unknown): v is DataFile =>
+  typeof v === 'object' && v !== null && 'result' in v
+const readDataFile = async (r: Response): Promise<DataFile | null> => {
+  if (!r.ok || !r.headers.get('content-type')?.includes('json')) return null
+  const body: unknown = await r.json()
+  return isDataFile(body) ? body : null
+}
+
+/* Start types a middleware result as an opaque brand that only `next()` can produce. Answering from
+   the prebuilt file instead of calling next() is what the runtime supports (it is how
+   @tanstack/start-static-server-functions works) but the types cannot express it, so this is the one
+   place the result is asserted. `T` is the type of `await ctx.next()`. */
+function answerWithout<T>(result: unknown, context: unknown): T {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Start's middleware result type is a brand only next() returns; see above
+  return { result, context } as T
+}
+
+const seen = new Map<string, Promise<DataFile | null>>()
 
 export const staticData = createMiddleware({ type: 'function' })
   .client(async (ctx) => {
@@ -48,16 +66,15 @@ export const staticData = createMiddleware({ type: 'function' })
       let hit = seen.get(url)
       if (!hit) {
         hit = fetch(url)
-          .then((r) =>
-            r.ok && r.headers.get('content-type')?.includes('json')
-              ? (r.json() as Promise<{ result: unknown }>)
-              : null,
-          )
+          .then(readDataFile)
           .catch(() => null)
         seen.set(url, hit)
       }
       const file = await hit
-      if (file) return { result: file.result, context: ctx.context } as never
+      if (file)
+        return answerWithout<
+          Awaited<ReturnType<typeof ctx.next<undefined, undefined>>>
+        >(file.result, ctx.context)
     }
     return ctx.next()
   })
@@ -65,11 +82,9 @@ export const staticData = createMiddleware({ type: 'function' })
     const res = await ctx.next()
     // Only under the local preview server that `scripts/static-data.ts` drives after a build: keep
     // every result so the script can write them out as /static-data/<hash>.json.
-    if (isLocal(getRequest().url))
-      collected().set(
-        await dataUrl(ctx.serverFnMeta.id, ctx.data),
-        (res as unknown as { result: unknown }).result,
-      )
+    // (the result type is an opaque brand; at runtime it carries the handler's `result`)
+    if (isLocal(getRequest().url) && 'result' in res)
+      collected().set(await dataUrl(ctx.serverFnMeta.id, ctx.data), res.result)
     return res
   })
 
@@ -78,6 +93,5 @@ const isLocal = (url: string) =>
 
 /* Results gathered in this isolate (local preview only). Read by src/server.ts → /__static-data. */
 export function collected() {
-  const g = globalThis as unknown as { __staticData?: Map<string, unknown> }
-  return (g.__staticData ??= new Map())
+  return (globalThis.__staticData ??= new Map<string, unknown>())
 }

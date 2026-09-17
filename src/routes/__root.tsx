@@ -62,7 +62,7 @@ function NotFound() {
 }
 
 /* Cloudflare Web Analytics token (32 hex chars) or a GA4 measurement id (G-XXXX). */
-function analyticsScripts(id?: string) {
+function analyticsScripts(id: string | null | undefined) {
   if (!id) return []
   if (id.startsWith('G-'))
     return [

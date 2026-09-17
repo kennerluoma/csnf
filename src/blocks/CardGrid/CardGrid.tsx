@@ -9,27 +9,11 @@ import {
   Stack,
   Text,
 } from '#/ui'
-import type { Link, SanityImage } from '#/sanity/types'
+import type { BlockOf } from '#/sanity/types'
 
-export type CardGridProps = {
-  eyebrow?: string
-  heading?: string
-  columns?: 2 | 3 | 4
-  cards?: Array<{
-    _key: string
-    title: string
-    body?: string
-    image?: SanityImage
-    link?: Link
-  }>
-}
+export type CardGridProps = BlockOf<'cardGrid'>
 
-export function CardGrid({
-  eyebrow,
-  heading,
-  columns = 3,
-  cards = [],
-}: CardGridProps) {
+export function CardGrid({ eyebrow, heading, columns, cards }: CardGridProps) {
   return (
     <Section tone="alt">
       <Container>
@@ -40,8 +24,8 @@ export function CardGrid({
               {heading && <Heading level={2}>{heading}</Heading>}
             </Stack>
           )}
-          <Grid columns={columns}>
-            {cards.map((card) => (
+          <Grid columns={columns ?? 3}>
+            {(cards ?? []).map((card) => (
               <Stack key={card._key} gap="sm">
                 <Image
                   image={card.image}
@@ -49,7 +33,7 @@ export function CardGrid({
                   className="aspect-[4/3]"
                 />
                 <Heading level={3}>
-                  {card.link ? (
+                  {card.link?.href ? (
                     <A href={card.link.href}>{card.title}</A>
                   ) : (
                     card.title
