@@ -35,6 +35,16 @@ if (!base) throw new Error('preview server did not start')
 const browser = await chromium.launch()
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+  // Attached for the whole session, not just around each click: with defaultPreload: 'viewport',
+  // a missing static-data file can already trigger its /_serverFn fallback during an earlier
+  // page.goto + the viewport-preload wait below, before any click happens — a listener attached
+  // only right before a click would miss that, and the click itself (data already fetched by the
+  // preload) would then make no further request and silently pass.
+  const serverFnCalls: Array<string> = []
+  page.on('request', (r) => {
+    const u = new URL(r.url())
+    if (u.pathname.startsWith('/_serverFn')) serverFnCalls.push(u.pathname)
+  })
   await page.goto(base, { waitUntil: 'networkidle' })
   // Index pages linked from the home page, then the first few clean links on each.
   const starts = await page.$$eval('a[href^="/"]', (as) => [
@@ -56,14 +66,11 @@ try {
       ),
     ])
     for (const href of hrefs.filter((h) => h !== start).slice(0, 3)) {
+      // /_serverFn is checked for the whole session above; this one stays scoped to the click
+      // itself, since a full document reload is specifically about that click, not preloading.
       const bad: Array<string> = []
-      const onReq = (r: { url: () => string; resourceType: () => string }) => {
-        const u = new URL(r.url())
-        if (
-          r.resourceType() === 'document' ||
-          u.pathname.startsWith('/_serverFn')
-        )
-          bad.push(`${r.resourceType()} ${u.pathname}`)
+      const onReq = (r: { resourceType: () => string }) => {
+        if (r.resourceType() === 'document') bad.push('document')
       }
       page.on('request', onReq)
       const t0 = Date.now()
@@ -95,6 +102,10 @@ try {
   // performance problem; the check starts to bite as soon as there is a second page.
   if (!clicks)
     console.log('click check skipped: the site has no internal links yet')
+  if (serverFnCalls.length)
+    problems.push(
+      `/_serverFn called ${serverFnCalls.length} time(s) during the session: ${[...new Set(serverFnCalls)].join(', ')} — a page is missing its static-data file`,
+    )
 } finally {
   await browser.close()
   await server.close()

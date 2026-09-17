@@ -7,6 +7,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { figToRest } from './fig.ts'
 import type { FigImport } from './fig.ts'
+import { choosePages } from './choose-pages.ts'
 import {
   dedupeRenders,
   dedupeRoutePaths,
@@ -632,23 +633,7 @@ type FigmaFile = {
 let figImport: FigImport | undefined
 if (fromFig) {
   figImport = figToRest(fromFig, { page: pageArg })
-  const main =
-    pageArg ??
-    figImport.pages.find((p) =>
-      /^(finals?|site|website|web|pages|desktop|designs?)$/i.test(p.trim()),
-    )
-  // mobile pages ride along: their frames become the mobile viewport of the same routes
-  const mobile = figImport.pages.filter((p) => /mobile/i.test(p) && p !== main)
-  // No obvious main page: drop the ones that are never the site (covers, component sheets,
-  // sketches, separators, Figma's internal canvas) rather than turning them into routes.
-  const junk =
-    /^(cover|thumbnail|components?|symbols?|styles?|sketch(es)?|archive|old|wip|playground|moodboard|inspiration|internal only canvas|[-–—_\s]+)$/i
-  const kept = figImport.pages.filter((p) => !junk.test(p.trim()))
-  const chosen = main
-    ? [main, ...mobile]
-    : kept.length && kept.length < figImport.pages.length
-      ? kept
-      : undefined
+  const chosen = choosePages(figImport.pages, pageArg)
   if (chosen) figImport = figToRest(fromFig, { pages: chosen })
   console.error(
     `fig: pages [${figImport.pages.join(', ')}] → using ${chosen ? chosen.map((p) => `"${p}"`).join(' + ') : 'all pages'} (pass --page to choose the main page)`,
@@ -673,9 +658,7 @@ if (fromBundle) {
       `${fromBundle} is not an Agency Figma plugin export (re-export with the current plugin)`,
     )
   const names = b.pages.map((p) => p.name)
-  const main = pageArg ?? names.find((p) => /^finals?$/i.test(p.trim()))
-  const mobile = names.filter((p) => /mobile/i.test(p) && p !== main)
-  const chosen = main ? [main, ...mobile] : names
+  const chosen = choosePages(names, pageArg) ?? names
   const images = new Map<string, () => Buffer>()
   for (const i of b.images)
     images.set(i.hash, () => Buffer.from(i.base64, 'base64'))
@@ -932,6 +915,13 @@ for (const page of file.document.children ?? []) {
     })
   }
 }
+
+// An unlucky --page (a typo bundle path used to accept silently) or a source file with no route
+// frames at all: fail loudly rather than write a valid-looking manifest with nothing in it.
+if (!routes.length)
+  throw new Error(
+    'no routes extracted: check --page and that the chosen page has top-level FRAME/SECTION content',
+  )
 
 // Detect any remaining duplicate `path` (a desktop route paired with its mobile viewport sharing
 // a path is expected — pages.ts skips the mobile ones when writing page documents) and make
