@@ -22,7 +22,10 @@ export const Route = createFileRoute('/api/contact')({
     handlers: {
       POST: async ({ request }) => {
         const form = await request.formData()
-        const f = (k: string) => String(form.get(k) ?? '').trim()
+        const f = (k: string) => {
+          const v = form.get(k)
+          return typeof v === 'string' ? v.trim() : ''
+        }
         const page = f('page').startsWith('/') ? f('page') : '/'
         if (f('website')) return redirect(page, 'sent=1') // honeypot: pretend success
         const name = f('name')

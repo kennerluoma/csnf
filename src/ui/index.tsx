@@ -4,12 +4,9 @@ import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react'
 import { Link as RouterLink, defaultParseSearch } from '@tanstack/react-router'
 import { PortableText } from '@portabletext/react'
 import type { PortableTextBlock } from '@portabletext/react'
+import { cn } from '#/lib/cn'
 import { urlFor } from '#/sanity/image'
 import type { AnyBlock, SanityImage } from '#/sanity/types'
-
-function cx(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(' ')
-}
 
 /* Internal paths navigate client-side (router Link, preloaded on hover); everything else is a
    plain anchor. Feeds, API routes and files are not app routes. */
@@ -37,6 +34,9 @@ export function A({
         hash={url.hash.slice(1) || undefined}
         activeOptions={{ exact: true, includeSearch: true }}
         resetScroll={resetScroll}
+        // Clean URLs have static data, so they preload as soon as they scroll into view (router
+        // default). Query-string links render on the Worker: wait for intent.
+        preload={href.includes('?') ? 'intent' : undefined}
         className={className}
         {...(rest as object)}
       >
@@ -70,7 +70,7 @@ export function Section({
 }) {
   return (
     <Tag
-      className={cx(
+      className={cn(
         { section: 'py-section', gutter: 'py-gutter', bar: 'py-bar' }[spacing],
         tone === 'alt' && 'bg-surface-alt',
         tone === 'ink' && 'bg-ink text-surface',
@@ -88,7 +88,7 @@ export function Panel({
 }: ComponentPropsWithoutRef<'div'> & { tone?: 'alt' | 'ink' }) {
   return (
     <div
-      className={cx(
+      className={cn(
         'rounded-md',
         tone === 'alt' && 'bg-surface-alt',
         tone === 'ink' && 'bg-ink text-surface',
@@ -105,7 +105,7 @@ export function Container({
 }: ComponentPropsWithoutRef<'div'>) {
   return (
     <div
-      className={cx('mx-auto w-full max-w-content px-gutter', className)}
+      className={cn('mx-auto w-full max-w-content px-gutter', className)}
       {...rest}
     />
   )
@@ -118,7 +118,7 @@ export function Stack({
 }: ComponentPropsWithoutRef<'div'> & { gap?: 'sm' | 'md' | 'lg' }) {
   return (
     <div
-      className={cx(
+      className={cn(
         'flex flex-col',
         { sm: 'gap-3', md: 'gap-6', lg: 'gap-10' }[gap],
         className,
@@ -135,7 +135,7 @@ export function Grid({
 }: ComponentPropsWithoutRef<'div'> & { columns?: 2 | 3 | 4 }) {
   return (
     <div
-      className={cx(
+      className={cn(
         'grid gap-8',
         {
           2: 'sm:grid-cols-2',
@@ -162,7 +162,7 @@ export function Heading({
   const s = size ?? ({ 1: 'display', 2: 'h2', 3: 'h3' } as const)[level]
   return (
     <Tag
-      className={cx(
+      className={cn(
         'font-display text-balance',
         { display: 'text-display', h2: 'text-h2', h3: 'text-h3' }[s],
         className,
@@ -175,7 +175,7 @@ export function Heading({
 export function Eyebrow({ className, ...rest }: ComponentPropsWithoutRef<'p'>) {
   return (
     <p
-      className={cx(
+      className={cn(
         'text-small font-medium uppercase tracking-widest text-ink-muted',
         className,
       )}
@@ -199,7 +199,7 @@ export function Text({
 }) {
   return (
     <Tag
-      className={cx(
+      className={cn(
         { body: 'text-body', small: 'text-small' }[size],
         weight === 'medium' && 'font-medium',
         muted && 'text-ink-muted',
@@ -218,7 +218,7 @@ export function NavLink({
   return (
     <A
       href={href}
-      className={cx(
+      className={cn(
         'text-small text-inherit underline-offset-4 hover:underline',
         className,
       )}
@@ -232,7 +232,7 @@ export function Logomark({ className }: { className?: string }) {
   return (
     <span
       aria-hidden
-      className={cx(
+      className={cn(
         'inline-block size-7 shrink-0 rounded-pill border-6 border-current',
         className,
       )}
@@ -254,7 +254,7 @@ export function Button({
   return (
     <A
       href={href}
-      className={cx(
+      className={cn(
         'inline-flex items-center justify-center rounded-md px-5 py-3 text-body font-medium transition-colors',
         variant === 'primary' && 'bg-ink text-surface hover:bg-ink/90',
         variant === 'secondary' &&
@@ -292,7 +292,7 @@ export function Image({
   const style = meta?.lqip
     ? { backgroundImage: `url(${meta.lqip})`, backgroundSize: 'cover' }
     : undefined
-  return (
+  const img = (
     <img
       src={url(width)}
       srcSet={[width / 2, width, width * 1.5]
@@ -305,10 +305,22 @@ export function Image({
       alt={image.alt ?? ''}
       loading={loading}
       decoding="async"
-      onClick={onClick}
       style={style}
-      className={cx('h-auto w-full rounded-lg object-cover', className)}
+      className={cn('h-auto w-full rounded-lg object-cover', className)}
     />
+  )
+  // A clickable image is a button, so it is focusable and works from the keyboard.
+  return onClick ? (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={image.alt ? `Open image: ${image.alt}` : 'Open image'}
+      className="block w-full cursor-zoom-in"
+    >
+      {img}
+    </button>
+  ) : (
+    img
   )
 }
 
@@ -321,7 +333,7 @@ export function RichText({
 }) {
   if (!value?.length) return null
   return (
-    <div className={cx('prose prose-neutral max-w-none text-body', className)}>
+    <div className={cn('prose prose-neutral max-w-none text-body', className)}>
       <PortableText value={value as unknown as Array<PortableTextBlock>} />
     </div>
   )
@@ -336,7 +348,7 @@ export function Badge({
 }: ComponentPropsWithoutRef<'span'>) {
   return (
     <span
-      className={cx(
+      className={cn(
         'inline-flex items-center rounded-pill border border-line px-2.5 py-0.5 text-small text-ink-muted',
         className,
       )}
@@ -369,7 +381,7 @@ export function Card({
         <Image
           image={image}
           width={800}
-          className={cx(
+          className={cn(
             {
               '4/3': 'aspect-[4/3]',
               '1/1': 'aspect-square',
@@ -441,7 +453,7 @@ export function FilterBar({
       ))}
       <button
         type="submit"
-        className={cx(buttonCls, 'bg-ink text-surface hover:bg-ink/90')}
+        className={cn(buttonCls, 'bg-ink text-surface hover:bg-ink/90')}
       >
         Filter
       </button>
@@ -508,7 +520,7 @@ export function SubmitButton({ children }: { children: ReactNode }) {
   return (
     <button
       type="submit"
-      className={cx(
+      className={cn(
         buttonCls,
         'self-start bg-ink text-surface hover:bg-ink/90',
       )}
@@ -548,13 +560,13 @@ export function Calendar({
               {row.map((cell) => (
                 <td
                   key={cell.iso}
-                  className={cx(
+                  className={cn(
                     'h-24 border border-line p-1.5 align-top',
                     cell.outside && 'text-ink-muted/60',
                     cell.today && 'bg-surface-alt',
                   )}
                 >
-                  <div className={cx('mb-1', cell.today && 'font-medium')}>
+                  <div className={cn('mb-1', cell.today && 'font-medium')}>
                     {cell.day}
                   </div>
                   {(days[cell.iso] ?? []).map((e) => (

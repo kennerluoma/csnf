@@ -10,6 +10,7 @@ import {
   defineHandlerCallback,
 } from '@tanstack/react-start/server'
 import { createServerEntry } from '@tanstack/react-start/server-entry'
+import { collected } from '#/lib/staticData'
 
 const start = createStartHandler(
   defineHandlerCallback((ctx) => defaultStreamHandler(ctx)),
@@ -42,9 +43,22 @@ async function fetch(
   ctx?: Ctx,
 ): Promise<Response> {
   const url = new URL(request.url)
+  // Build step only (scripts/static-data.ts, local preview): hand over the collected loader data.
+  if (url.pathname === '/__static-data')
+    return /^(localhost|127\.0\.0\.1)$/.test(url.hostname)
+      ? Response.json(Object.fromEntries(collected()))
+      : new Response(null, { status: 404 })
+  // A data file that wasn't prebuilt: answer cheaply, the client falls back to the server function.
+  if (url.pathname.startsWith('/static-data/'))
+    return new Response(null, { status: 404 })
   // Prerendered pages and public files: only for clean URLs (no query), so filtered/paged variants
   // of a prerendered route still render.
-  if (request.method === 'GET' && !url.search && env?.ASSETS) {
+  if (
+    request.method === 'GET' &&
+    !url.search &&
+    env?.ASSETS &&
+    !request.headers.has('x-static-data') // the build script wants the route rendered, not the file
+  ) {
     const asset = await env.ASSETS.fetch(request)
     if (asset.status !== 404) return asset
   }

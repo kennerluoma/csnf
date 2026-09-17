@@ -3,9 +3,42 @@ import { devtools } from '@tanstack/devtools-vite'
 
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 
-import viteReact from '@vitejs/plugin-react'
+import viteReact, { reactCompilerPreset } from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
 import { cloudflare } from '@cloudflare/vite-plugin'
+import type { Plugin } from 'vite'
+
+/* React Compiler is on for everything under src/. "On" is checked, not assumed: this counts the
+   modules the compiler actually rewrote (they import react/compiler-runtime) and fails the build
+   when there are none. `pnpm check:compiler` prints the list. */
+function compilerCheck(): Plugin {
+  const compiled = new Set<string>()
+  return {
+    name: 'agency:compiler-check',
+    enforce: 'post',
+    apply: 'build',
+    applyToEnvironment: (env) => env.name === 'client',
+    transform(code, id) {
+      if (id.includes('/src/') && code.includes('react/compiler-runtime'))
+        compiled.add(id)
+    },
+    buildEnd() {
+      const files = [...compiled]
+        .map((f) => f.slice(f.indexOf('/src/') + 1))
+        .sort()
+      if (!files.length)
+        this.error(
+          'React Compiler compiled 0 modules: it is not active. Check vite.config.ts.',
+        )
+      if (process.env.COMPILER_REPORT)
+        console.log(
+          `\nReact Compiler: ${files.length} modules\n  ${files.join('\n  ')}\n`,
+        )
+      else console.log(`React Compiler: ${files.length} modules compiled`)
+    },
+  }
+}
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
@@ -26,6 +59,8 @@ const config = defineConfig({
       },
     }),
     viteReact(),
+    babel({ presets: [reactCompilerPreset()] }),
+    compilerCheck(),
   ],
 })
 

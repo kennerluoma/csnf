@@ -64,7 +64,7 @@ function NotFound() {
 /* Cloudflare Web Analytics token (32 hex chars) or a GA4 measurement id (G-XXXX). */
 function analyticsScripts(id?: string) {
   if (!id) return []
-  if (/^G-/.test(id))
+  if (id.startsWith('G-'))
     return [
       { src: `https://www.googletagmanager.com/gtag/js?id=${id}`, async: true },
       {

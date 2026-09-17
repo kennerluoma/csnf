@@ -5,8 +5,11 @@ export function getRouter() {
   const router = createTanStackRouter({
     routeTree,
     scrollRestoration: true,
-    defaultPreload: 'intent',
-    defaultPreloadStaleTime: 0,
+    // Links preload when they scroll into view: the route chunk plus its loader data, which is a
+    // static JSON file (src/lib/staticData.ts), so a click has nothing left to wait for.
+    defaultPreload: 'viewport',
+    defaultPreloadStaleTime: 5 * 60_000,
+    defaultStaleTime: 5 * 60_000,
   })
 
   return router
