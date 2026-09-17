@@ -13,6 +13,12 @@ import { A, Container, Heading, Section, Stack, Text } from '#/ui'
 
 export const Route = createRootRoute({
   loader: () => getSiteSettings(),
+  // ISR for server-rendered pages (src/server.ts): fresh for 60s at the edge, served stale up to a
+  // day while revalidating. Browsers always revalidate. Prerendered routes are static regardless.
+  headers: () => ({
+    'Cache-Control':
+      'public, max-age=0, s-maxage=60, stale-while-revalidate=86400',
+  }),
   head: ({ loaderData: settings }) => ({
     meta: [
       { charSet: 'utf-8' },

@@ -3,7 +3,15 @@
   "name": "csnf",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
+  "main": "./src/server.ts",
+  // Prerendered pages live at <route>/index.html; serve /route directly (no 307 to /route/).
+  // The Worker runs first (src/server.ts): clean URLs are served from the prerendered assets, URLs with a
+  // query string (filters, months) render through ISR. Hashed build assets bypass the Worker.
+  "assets": {
+    "html_handling": "drop-trailing-slash",
+    "binding": "ASSETS",
+    "run_worker_first": ["/*", "!/assets/*"],
+  },
   "workers_dev": true,
   "preview_urls": true,
   "observability": { "enabled": true },

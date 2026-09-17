@@ -39,6 +39,13 @@ Documents in `src/sanity/schema/documents.ts`: `artist`, `artwork`, `exhibition`
 - All colours, fonts, type sizes, radii and section spacing are tokens in `src/styles/tokens.css` (Tailwind `@theme`). Add a token rather than a one-off value. Prefer semantic names (`--color-ink`, `--color-surface`, `--color-accent`) and reference them as utilities (`bg-surface`, `text-ink-muted`, `text-display`).
 - If a design needs a primitive that doesn't exist (e.g. `Quote`, `Stat`), add it to `src/ui/index.tsx` once, then use it from blocks. Restyle `Card` via tokens and props, never by forking it per block.
 
+## Rendering (prerender or ISR, never per-request)
+
+- Every clean URL reachable from `/` is prerendered to static HTML at build (`vite.config.ts` → `prerender.crawlLinks`) and served as an asset. Content edits redeploy via the Sanity webhook.
+- URLs with a query string (filters, months, pagination) and any slug the crawler missed render once at the edge and are cached by `src/server.ts` for the `s-maxage` set on the root route (60s, stale-while-revalidate a day). Never remove the root `headers()`; never make a route depend on per-request data (cookies, time of day) without a `Cache-Control: private` header on that route.
+- Internal links use the `A`/`NavLink`/`Button`/`Card` primitives (router `Link`, preloaded on hover). Plain `<a href="/…">` is a full page load and is wrong in this repo.
+- The browser bundle must not import `@sanity/client`: `urlFor` is config-only; server code imports the client from `src/sanity/client.ts` in server functions only.
+
 ## Data
 
 - Fetch via `createServerFn` in `src/lib/page.ts` (do not name files `*.server.ts`; Start blocks importing those from routes), queries in `src/sanity/queries.ts`. Server functions must return plain JSON (Portable Text is typed as `Array<AnyBlock>` for this reason).
