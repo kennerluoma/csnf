@@ -101,11 +101,10 @@ const md = await readFile(path, 'utf8')
 const next = md.includes(START)
   ? md.replace(new RegExp(`${START}[\\s\\S]*?${END}`), table)
   : `${md.trimEnd()}\n\n## Block inventory\n\n${table}\n`
-if (next !== md) {
-  await writeFile(path, next)
-  execFileSync('pnpm', ['exec', 'oxfmt', path], {
-    stdio: 'ignore',
-  })
+// Compare after formatting, so a formatter's table layout doesn't read as a change every run.
+await writeFile(path, next)
+execFileSync('pnpm', ['exec', 'oxfmt', path], { stdio: 'ignore' })
+if ((await readFile(path, 'utf8')) !== md) {
   console.log(
     `AGENTS.md: inventory updated (${rows.length} blocks, ${primitives.length} primitives)`,
   )
