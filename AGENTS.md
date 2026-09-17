@@ -52,6 +52,10 @@ Documents in `src/sanity/schema/documents.ts`: `artist`, `artwork`, `exhibition`
 - `pnpm shot [url]` · Playwright screenshots of every route → `design/shots/*.png`
 - `pnpm seed` · write seed documents of every type to Sanity (needs `SANITY_WRITE_TOKEN`) · `pnpm pages` · write page documents from the manifest
 
+## Lessons
+
+`.agency/lessons.md` holds rules learned from previous client sites (maintained by `agency learn`). Read it before planning or fixing; it overrides your defaults where they disagree.
+
 ## Design translation (what the runner executes)
 
 Input: `design/manifest.json` (from Figma) and `design/renders/*.png`. Optional first pass: `.agency/prompts/plan.md` writes `design/plan.md` (block plan). Main pass: `.agency/prompts/translate.md`. Output: tokens, blocks, page documents in Sanity, a branch and a PR. Never push to `main`.

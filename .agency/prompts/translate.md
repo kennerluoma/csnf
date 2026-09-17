@@ -1,4 +1,4 @@
-You are translating a Figma design into this repo. Read AGENTS.md first (including the block inventory at the bottom) and follow it exactly.
+You are translating a Figma design into this repo. Read AGENTS.md first (including the block inventory at the bottom) and .agency/lessons.md (rules learned from previous sites), and follow both exactly.
 
 Inputs
 

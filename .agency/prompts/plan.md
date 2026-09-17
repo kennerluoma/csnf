@@ -1,4 +1,4 @@
-You are planning (not implementing) the translation of a Figma design into this repo. Read AGENTS.md, especially the block inventory at the bottom, and design/manifest.json. Look at design/renders/*.png.
+You are planning (not implementing) the translation of a Figma design into this repo. Read AGENTS.md, especially the block inventory at the bottom, .agency/lessons.md (rules learned from previous sites), and design/manifest.json. Look at design/renders/*.png.
 
 Write ONE file, design/plan.md, and nothing else. Do not edit code. Do not run the build.
 
