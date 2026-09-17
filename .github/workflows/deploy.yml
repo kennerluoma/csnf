@@ -130,7 +130,12 @@ jobs:
       - name: Preview alias from branch name
         if: github.ref != 'refs/heads/main'
         id: alias
-        run: echo "alias=$(echo '${{ github.ref_name }}' | tr '/_' '--' | tr -cd 'a-zA-Z0-9-' | cut -c1-28 | tr 'A-Z' 'a-z')" >> "$GITHUB_OUTPUT"
+        # github.ref_name goes through `env`, not string-interpolated into the script: a branch
+        # name like `x'; curl ...; '` would otherwise close the quote GitHub Actions inserts and
+        # run arbitrary shell in a job that holds CF_API_TOKEN.
+        env:
+          REF: ${{ github.ref_name }}
+        run: echo "alias=$(echo "$REF" | tr '/_' '--' | tr -cd 'a-zA-Z0-9-' | cut -c1-28 | tr 'A-Z' 'a-z' | sed 's/^-*//; s/-*$//')" >> "$GITHUB_OUTPUT"
 
       - name: Upload preview version
         if: github.ref != 'refs/heads/main'

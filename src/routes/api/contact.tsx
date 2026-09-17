@@ -7,18 +7,14 @@ import { createClient } from '@sanity/client'
 import { apiVersion, dataset, projectId } from '#/sanity/env'
 import { client } from '#/sanity/client'
 import { siteSettingsQuery } from '#/sanity/queries.gen'
+import { redirectTo, safePath } from '#/lib/safe-redirect'
 
 /* Turnstile siteverify answers `{ success: boolean, … }`. */
 const isTurnstileSuccess = (v: unknown) =>
   typeof v === 'object' && v !== null && 'success' in v && v.success === true
 
-const redirect = (page: string, q: string) =>
-  new Response(null, {
-    status: 303,
-    headers: {
-      location: `${page}${page.includes('?') ? '&' : '?'}${q}#contact`,
-    },
-  })
+const redirect = (page: string, key: string, value: string) =>
+  redirectTo(page, key, value, '#contact')
 
 export const Route = createFileRoute('/api/contact')({
   server: {
@@ -29,14 +25,14 @@ export const Route = createFileRoute('/api/contact')({
           const v = form.get(k)
           return typeof v === 'string' ? v.trim() : ''
         }
-        const page = f('page').startsWith('/') ? f('page') : '/'
-        if (f('website')) return redirect(page, 'sent=1') // honeypot: pretend success
+        const page = safePath(f('page'))
+        if (f('website')) return redirect(page, 'sent', '1') // honeypot: pretend success
         const name = f('name')
         const email = f('email')
         const subject = f('subject')
         const message = f('message')
         if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !message)
-          return redirect(page, 'error=invalid')
+          return redirect(page, 'error', 'invalid')
 
         const turnstileSecret = process.env.TURNSTILE_SECRET_KEY
         if (turnstileSecret) {
@@ -53,7 +49,7 @@ export const Route = createFileRoute('/api/contact')({
           )
           const verdict: unknown = await res.json()
           if (!isTurnstileSuccess(verdict))
-            return redirect(page, 'error=invalid')
+            return redirect(page, 'error', 'invalid')
         }
 
         try {
@@ -107,10 +103,10 @@ export const Route = createFileRoute('/api/contact')({
               )
           } else if (!key)
             console.warn('contact: RESEND_API_KEY not set; email skipped')
-          return redirect(page, 'sent=1')
+          return redirect(page, 'sent', '1')
         } catch (e) {
           console.error('contact: failed', e)
-          return redirect(page, 'error=failed')
+          return redirect(page, 'error', 'failed')
         }
       },
     },
