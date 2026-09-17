@@ -110,6 +110,23 @@ jobs:
           workingDirectory: admin
           command: deploy --config wrangler.jsonc
 
+      # What the admin's "Register Studio" button does besides adding a CORS origin (which
+      # provisioning already does): push the studio's schema + manifest into the dataset, so
+      # schema-aware search and the other features that read the deployed schema work without
+      # anyone clicking anything. It regenerates the manifest itself; no separate extract step.
+      #
+      # continue-on-error on purpose: this is an admin nicety, and a token or API problem here
+      # must never turn a client's site deploy red. A failure still shows up on the run.
+      - name: Register admin schema with Sanity
+        if: github.ref == 'refs/heads/main' && steps.site.outputs.built == 'true'
+        continue-on-error: true
+        working-directory: admin
+        env:
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_WRITE_TOKEN }}
+          SANITY_STUDIO_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+          SANITY_STUDIO_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
+        run: pnpm exec sanity schemas deploy
+
       - name: Preview alias from branch name
         if: github.ref != 'refs/heads/main'
         id: alias
