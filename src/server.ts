@@ -48,6 +48,9 @@ async function fetch(
     return /^(localhost|127\.0\.0\.1)$/.test(url.hostname)
       ? Response.json(Object.fromEntries(collected()))
       : new Response(null, { status: 404 })
+  // A data file that wasn't prebuilt: answer cheaply, the client falls back to the server function.
+  if (url.pathname.startsWith('/static-data/'))
+    return new Response(null, { status: 404 })
   // Prerendered pages and public files: only for clean URLs (no query), so filtered/paged variants
   // of a prerendered route still render.
   if (

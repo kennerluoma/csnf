@@ -26,7 +26,14 @@ export function A({
 }: ComponentPropsWithoutRef<'a'> & { href: string }) {
   if (isInternal(href))
     return (
-      <RouterLink to={href} className={className} {...(rest as object)}>
+      <RouterLink
+        to={href}
+        // Clean URLs have static data, so they preload as soon as they scroll into view (router
+        // default). Query-string links render on the Worker: wait for intent.
+        preload={href.includes('?') ? 'intent' : undefined}
+        className={className}
+        {...(rest as object)}
+      >
         {children}
       </RouterLink>
     )
