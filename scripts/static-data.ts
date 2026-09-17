@@ -53,6 +53,13 @@ try {
     throw new Error(
       'static data: nothing collected; client navigation would hit the Worker',
     )
+  // A build that silently drops pages here means those pages fall through to /_serverFn at
+  // runtime instead of the static file client-side navigation expects — this used to only be
+  // logged, so the build (and the budget check that runs after it) still passed.
+  if (failed)
+    throw new Error(
+      `static data: ${failed} of ${pages.length} page(s) failed to render for collection`,
+    )
 } finally {
   await server.close()
 }
