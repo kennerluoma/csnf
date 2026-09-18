@@ -234,11 +234,14 @@ export function figToRest(
     if (p && nodes.has(gid(p.guid))) nodes.get(gid(p.guid))!.children.push(n)
   }
   for (const n of nodes.values())
-    (n.children as Array<FigNode>).sort((a, b) =>
-      String(a.parentIndex?.position ?? '').localeCompare(
-        String(b.parentIndex?.position ?? ''),
-      ),
-    )
+    (n.children as Array<FigNode>).sort((a, b) => {
+      // Figma's fractional-index positions are ASCII strings meant to be compared by code unit.
+      // localeCompare uses ICU collation, which ignores punctuation and reorders case — sibling
+      // order (and so which duplicate frame is canonical, and z-order) could come out wrong.
+      const pa = String(a.parentIndex?.position ?? '')
+      const pb = String(b.parentIndex?.position ?? '')
+      return pa < pb ? -1 : pa > pb ? 1 : 0
+    })
   const doc = nodes.get(rootId)!
   const pages = (doc.children as Array<FigNode>).map((p) => p.name)
 
