@@ -8,12 +8,17 @@ import { basename, join } from 'node:path'
 import { createClient } from '@sanity/client'
 import type { IdentifiedSanityDocumentStub } from '@sanity/client'
 
+// The extractor (scripts/extract.ts's sectionOf/summarize) never writes a section-level `images`
+// array — a node's image is only ever `tree[].image`, a file path, found by walking the
+// summarized tree. There was no such array to read; the Hero block's image was silently never
+// uploaded.
+type TreeNode = { name: string; image?: string; children?: Array<TreeNode> }
 type Section = {
   id: string
   name: string
   type: string
   text?: Record<string, string>
-  images?: Array<{ name: string; file?: string }>
+  tree?: TreeNode
 }
 type Manifest = {
   routes: Array<{
@@ -65,13 +70,25 @@ async function uploadImage(image: { name: string; file?: string }) {
   }
 }
 
+/* Depth-first: the first node in the summarized tree that has an image, if any. */
+function firstImage(
+  node: TreeNode | undefined,
+): { name: string; file: string } | undefined {
+  if (!node) return undefined
+  if (node.image) return { name: node.name, file: node.image }
+  for (const child of node.children ?? []) {
+    const found = firstImage(child)
+    if (found) return found
+  }
+  return undefined
+}
+
 async function toBlock(section: Section) {
   const texts = Object.values(section.text ?? {})
   switch (section.type) {
     case 'Hero': {
-      const image = section.images?.[0]
-        ? await uploadImage(section.images[0])
-        : undefined
+      const found = firstImage(section.tree)
+      const image = found ? await uploadImage(found) : undefined
       const [heading, body] = texts
       return {
         _key: keyFor(section.id),

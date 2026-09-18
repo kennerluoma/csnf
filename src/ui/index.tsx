@@ -8,9 +8,12 @@ import { urlFor } from '#/sanity/image'
 import type { RichTextValue, SanityImage } from '#/sanity/types'
 
 /* Internal paths navigate client-side (router Link, preloaded on hover); everything else is a
-   plain anchor. Feeds, API routes and files are not app routes. */
+   plain anchor. Feeds, API routes and files are not app routes.
+   `/^\/(?![\/\\])/`, not a bare startsWith('/'): a CMS href of "//partner.org/page" (protocol-
+   relative) or "/\host" also starts with "/", but `new URL(href, 'http://local')` below drops
+   the host from either, silently turning an external link into the internal route "/page". */
 const isInternal = (href: string) =>
-  href.startsWith('/') &&
+  /^\/(?![/\\])/.test(href) &&
   !/^\/(api|ics)\//.test(href) &&
   !/\.[a-z0-9]{2,4}(\?|#|$)/i.test(href)
 
@@ -43,7 +46,9 @@ export function A({
       </RouterLink>
     )
   }
-  const external = /^https?:\/\//.test(href)
+  // A protocol-relative "//partner.org/page" is external too (the browser resolves it against
+  // the current protocol) but doesn't match the http(s):// prefix above.
+  const external = /^https?:\/\//.test(href) || href.startsWith('//')
   return (
     <a
       href={href}
