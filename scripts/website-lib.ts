@@ -1327,6 +1327,10 @@ export type Collection = {
     title: string
     fields: Record<string, string | number | Array<string>>
   }>
+  /** Pages under the detail path known from links/sitemaps: fetched instances + `notFetched`. */
+  found: number
+  /** Paths under the detail path that were never fetched (presumed instances, content unknown). */
+  notFetched: Array<string>
 }
 
 const CHROME_TYPES = new Set(['Header', 'Nav', 'Footer'])
@@ -1416,12 +1420,16 @@ export function instanceFields(
 
 /* Pages under one parent path that share a section skeleton, ≥ 3 of them linked from one list page
    (content links, not the nav), are one collection: {listRoute, detailRouteShape, fields,
-   instances}. Their paths are returned in `members` so the caller drops them from the routes. */
+   instances}. Their paths are returned in `members` so the caller drops them from the routes.
+   The crawl fetches only a sample of each parent path; `inventory` (every known page path) fills
+   in the rest: unfetched siblings count as list-page links and are listed in `notFetched`. */
 export function detectCollections(
   pages: Array<CrawledPage>,
   origin: string,
   siteSuffix?: string,
+  inventory: Array<string> = [],
 ): { collections: Array<Collection>; members: Set<string> } {
+  const fetched = new Set(pages.map((p) => p.path))
   const byDir = new Map<string, Array<CrawledPage>>()
   for (const p of pages) {
     if (p.path === '/') continue
@@ -1440,8 +1448,17 @@ export function detectCollections(
     const mode = [...bySkeleton.values()].sort((a, b) => b.length - a.length)[0]
     if (!mode || mode.length < 3) continue
     const memberPaths = new Set(mode.map((p) => p.path))
+    const unfetched =
+      dir === '/'
+        ? []
+        : [
+            ...new Set(
+              inventory.filter((p) => dirOf(p) === dir && !fetched.has(p)),
+            ),
+          ].sort()
+    const linkable = new Set([...memberPaths, ...unfetched])
     const linkCount = (p: CrawledPage) =>
-      new Set(p.contentLinks.filter((l) => memberPaths.has(l))).size
+      new Set(p.contentLinks.filter((l) => linkable.has(l))).size
     const candidates = pages
       .filter((p) => !memberPaths.has(p.path))
       .map((p) => ({ p, n: linkCount(p) }))
@@ -1496,8 +1513,491 @@ export function detectCollections(
         coverage: `${v.n}/${instances.length}`,
       })),
       instances,
+      found: instances.length + unfetched.length,
+      notFetched: unfetched,
     })
     for (const p of memberPaths) members.add(p)
   }
   return { collections, members }
+}
+
+// ---- polite fetching ----
+
+/* One scheduler per crawled origin. Every request to it (pages, robots.txt, sitemaps, stylesheets,
+   same-origin images, browser navigations) goes through `run`, which keeps the crawl gentle:
+   at most `concurrency` requests in flight, `minGapMs` between request starts, a timeout, one
+   retry with backoff for timeouts / resets / 429 / 503 (honouring Retry-After). It adapts: after
+   `slowAfter` consecutive failures it drops to one request at a time and pauses `cooldownMs`;
+   after `abortAfter` it stops for good (SiteDownError). Each request kind has an attempt budget,
+   retries included, so a failing site can never turn a 30-page crawl into 400 requests. */
+export type Politeness = {
+  concurrency: number
+  minGapMs: number
+  timeoutMs: number
+  retryDelayMs: number
+  slowAfter: number
+  cooldownMs: number
+  abortAfter: number
+  maxRetryAfterMs: number
+}
+export const POLITE: Politeness = {
+  concurrency: 2,
+  minGapMs: 300,
+  timeoutMs: 15_000,
+  retryDelayMs: 2000,
+  slowAfter: 2,
+  cooldownMs: 3000,
+  abortAfter: 8,
+  maxRetryAfterMs: 60_000,
+}
+export const MAX_CONCURRENCY = 4
+export const SITE_DOWN =
+  'site stopped responding; try again later or pick fewer pages'
+
+export class SiteDownError extends Error {
+  constructor(detail?: string) {
+    super(detail ? `${SITE_DOWN} (${detail})` : SITE_DOWN)
+    this.name = 'SiteDownError'
+  }
+}
+export class BudgetError extends Error {
+  constructor(kind: string, n: number) {
+    super(`attempt budget for ${kind} requests spent (${n})`)
+    this.name = 'BudgetError'
+  }
+}
+
+/* What one attempt produced: the HTTP status (for the scheduler's health check) and the caller's
+   value. A task that throws is a network failure or a timeout. */
+export type Attempted<T> = {
+  status: number
+  retryAfter: string | null
+  value: T
+}
+export type Task<T> = (
+  signal: AbortSignal,
+  timeoutMs: number,
+) => Promise<Attempted<T>>
+
+export function retryAfterMs(
+  value: string | null,
+  now: number,
+): number | undefined {
+  if (!value) return undefined
+  const s = Number(value.trim())
+  if (value.trim() && Number.isFinite(s) && s >= 0) return s * 1000
+  const d = Date.parse(value)
+  return Number.isFinite(d) ? Math.max(0, d - now) : undefined
+}
+
+const errorParts = (e: unknown) => {
+  const parts: Array<string> = []
+  let cur: unknown = e
+  for (let i = 0; i < 4 && cur instanceof Error; i++) {
+    parts.push(cur.name, cur.message)
+    if ('code' in cur && typeof cur.code === 'string') parts.push(cur.code)
+    cur = cur.cause
+  }
+  return parts.join(' ')
+}
+const TIMEOUT = /TimeoutError|timed? ?out|ETIMEDOUT|ERR_TIMED_OUT/i
+const RESET =
+  /ECONNRESET|ECONNREFUSED|EPIPE|UND_ERR|socket|other side closed|fetch failed|ERR_CONNECTION|ERR_EMPTY_RESPONSE|ERR_NETWORK/i
+
+/* A thrown error worth one retry: a timeout or a dropped connection. */
+export const transientError = (e: unknown) => {
+  const s = errorParts(e)
+  return TIMEOUT.test(s) || RESET.test(s)
+}
+
+/* Short, stable reason for the skipped list. */
+export function errorText(e: unknown, timeoutMs: number): string {
+  const s = errorParts(e)
+  if (TIMEOUT.test(s))
+    return `timed out after ${Math.round(timeoutMs / 1000)} s`
+  const code = /ECONNRESET|ECONNREFUSED|EPIPE|ENOTFOUND|EAI_AGAIN/.exec(s)?.[0]
+  if (code) return `connection failed (${code})`
+  return e instanceof Error ? (e.message.split('\n')[0] ?? e.name) : String(e)
+}
+
+const RETRY_STATUS = new Set([429, 503])
+const sleep = (ms: number) =>
+  new Promise<void>((r) => {
+    setTimeout(r, ms)
+  })
+
+export class Scheduler {
+  readonly p: Politeness
+  concurrency: number
+  down: string | undefined
+  attempts = 0
+  readonly used = new Map<string, number>()
+  private readonly budget: Record<string, number>
+  private active = 0
+  private waiters: Array<() => void> = []
+  private consecutive = 0
+  private nextStart = 0
+  private pausedUntil = 0
+
+  constructor(p: Politeness, budget: Record<string, number> = {}) {
+    this.p = p
+    this.concurrency = Math.max(1, Math.min(MAX_CONCURRENCY, p.concurrency))
+    this.budget = budget
+  }
+
+  /* Attempts left for a kind (Infinity when it has no budget). */
+  left(kind: string) {
+    return (this.budget[kind] ?? Infinity) - (this.used.get(kind) ?? 0)
+  }
+  setBudget(kind: string, n: number) {
+    this.budget[kind] = n
+  }
+
+  private async acquire() {
+    while (this.active >= this.concurrency && !this.down)
+      await new Promise<void>((r) => this.waiters.push(r))
+    this.active++
+  }
+  private release() {
+    this.active--
+    if (this.down) for (const w of this.waiters.splice(0)) w()
+    else this.waiters.shift()?.()
+  }
+  private pause(ms: number) {
+    this.pausedUntil = Math.max(this.pausedUntil, Date.now() + ms)
+  }
+  private async turn() {
+    const now = Date.now()
+    const start = Math.max(now, this.nextStart, this.pausedUntil)
+    this.nextStart = start + this.p.minGapMs
+    if (start > now) await sleep(start - now)
+  }
+  private stop(detail?: string) {
+    this.down = new SiteDownError(detail).message
+    for (const w of this.waiters.splice(0)) w()
+  }
+  /* The server answered or failed; returns true when the answer was a failure. */
+  private health(failed: boolean, retryAfter?: number) {
+    if (retryAfter !== undefined) {
+      if (retryAfter > this.p.maxRetryAfterMs)
+        this.stop(`it asked to wait ${Math.round(retryAfter / 1000)} s`)
+      else this.pause(retryAfter)
+    }
+    if (!failed) {
+      this.consecutive = 0
+      return
+    }
+    this.consecutive++
+    if (this.consecutive >= this.p.abortAfter)
+      this.stop(`${this.consecutive} failed requests in a row`)
+    else if (this.consecutive >= this.p.slowAfter) {
+      this.concurrency = 1
+      this.pause(this.p.cooldownMs)
+    }
+  }
+
+  async run<T>(kind: string, task: Task<T>): Promise<Attempted<T>> {
+    for (let attempt = 0; ; attempt++) {
+      await this.acquire()
+      let outcome:
+        | { ok: true; res: Attempted<T> }
+        | { ok: false; error: unknown }
+      try {
+        if (this.down) throw new SiteDownError()
+        if (this.left(kind) <= 0)
+          throw new BudgetError(kind, this.budget[kind] ?? 0)
+        // Reserve the attempt before waiting for a turn, so parallel callers cannot overspend.
+        this.used.set(kind, (this.used.get(kind) ?? 0) + 1)
+        this.attempts++
+        await this.turn()
+        if (this.down) {
+          this.used.set(kind, (this.used.get(kind) ?? 1) - 1)
+          this.attempts--
+          throw new SiteDownError()
+        }
+        try {
+          outcome = {
+            ok: true,
+            res: await task(
+              AbortSignal.timeout(this.p.timeoutMs),
+              this.p.timeoutMs,
+            ),
+          }
+        } catch (error) {
+          outcome = { ok: false, error }
+        }
+      } finally {
+        this.release()
+      }
+      const status = outcome.ok ? outcome.res.status : 0
+      const failed = !outcome.ok || RETRY_STATUS.has(status) || status >= 500
+      const wait = outcome.ok
+        ? retryAfterMs(outcome.res.retryAfter, Date.now())
+        : undefined
+      this.health(failed, RETRY_STATUS.has(status) ? wait : undefined)
+      const retry =
+        attempt === 0 &&
+        !this.down &&
+        this.left(kind) > 0 &&
+        (outcome.ok ? RETRY_STATUS.has(status) : transientError(outcome.error))
+      if (retry) {
+        await sleep(Math.max(this.p.retryDelayMs, wait ?? 0))
+        continue
+      }
+      if (outcome.ok) return outcome.res
+      throw outcome.error
+    }
+  }
+}
+
+// ---- staged crawl ----
+
+export type Skip = { url: string; why: string }
+export type Loaded<T> =
+  | { kind: 'page'; finalUrl: string; links: Array<FoundLink>; data: T }
+  | { kind: 'skip'; why: string }
+export type Group = { prefix: string; count: number; sampled: number }
+
+/* Only real problems go to `skipped`: errors, HTTP errors, robots.txt, logins, a page that
+   answered with something other than HTML. Links to files (images, PDFs), mailto/tel, query
+   variants, pagination, other origins and endpoints like /wp-json are simply not pages. */
+const REPORTED = new Set(['login page'])
+
+/* The group a path belongs to for the page picker: its first segment when another page shares
+   it (/services, /services/roofing → "/services"), else "/" (top-level pages). */
+export const firstSegment = (path: string) =>
+  path === '/' ? '/' : `/${path.split('/')[1] ?? ''}`
+export function groupPages(
+  paths: Iterable<string>,
+  sampledPaths: Iterable<string> = [],
+): Array<Group> {
+  const all = [...new Set(paths)]
+  const segs = new Map<string, number>()
+  for (const p of all)
+    segs.set(firstSegment(p), (segs.get(firstSegment(p)) ?? 0) + 1)
+  const groupOf = (p: string) =>
+    (segs.get(firstSegment(p)) ?? 0) >= 2 ? firstSegment(p) : '/'
+  const groups = new Map<string, Group>()
+  for (const p of all) {
+    const prefix = groupOf(p)
+    const g = groups.get(prefix) ?? { prefix, count: 0, sampled: 0 }
+    g.count++
+    groups.set(prefix, g)
+  }
+  for (const p of new Set(sampledPaths)) {
+    const g = groups.get(groupOf(p))
+    if (g) g.sampled++
+  }
+  return [...groups.values()].sort(
+    (a, b) => b.count - a.count || a.prefix.localeCompare(b.prefix),
+  )
+}
+
+export type CrawlResult<T> = {
+  pages: Array<{ url: string; path: string; data: T }>
+  skipped: Array<Skip>
+  /** Crawlable same-origin pages known from links and sitemaps. */
+  found: number
+  /** Of those, how many were never requested. */
+  notFetched: number
+  groups: Array<Group>
+  /** Every known page path (fetched or not), for collection detection. */
+  inventory: Array<string>
+  /** Set when the site stopped responding and the crawl gave up. */
+  aborted: string | undefined
+}
+
+const INVENTORY_CAP = 10_000
+
+/* Stage A: the start page (fetched alone; no other request starts until it is done) plus the
+   sitemap URLs build an inventory of every same-origin page WITHOUT fetching them. Links found on
+   pages fetched later join the inventory too. Stage B: fetch at most `max` of them in this order:
+   the start page, nav/header/footer links, one representative of each group not sampled yet,
+   in-page links, sitemap URLs; a parent path that already has 3 pages sampled waits at the back,
+   and none gets more than `perDirCap` (collections are recognised from a sample, not by fetching
+   every instance). The scheduler's budget ends the crawl when attempts run out. */
+export async function crawl<T>(o: {
+  origin: string
+  seeds: Array<string>
+  sitemap: Array<string>
+  discover: boolean
+  max: number
+  robots: Robots
+  scheduler: Scheduler
+  perDirCap?: number
+  load: (
+    url: string,
+    signal: AbortSignal,
+    timeoutMs: number,
+  ) => Promise<Attempted<Loaded<T>>>
+}): Promise<CrawlResult<T>> {
+  type Entry = {
+    url: string
+    path: string
+    tier: number
+    seq: number
+    state: 'queued' | 'running' | 'done'
+  }
+  const inventory = new Map<string, Entry>()
+  const queued: Array<Entry> = []
+  const done = new Set<string>()
+  const skipped = new Map<string, string>()
+  const startedDir = new Map<string, number>()
+  const startedSeg = new Map<string, number>()
+  const segSize = new Map<string, number>()
+  const pages: CrawlResult<T>['pages'] = []
+  let seq = 0
+  const bump = (m: Map<string, number>, k: string) =>
+    m.set(k, (m.get(k) ?? 0) + 1)
+  const skip = (url: string, why: string) => {
+    if (!skipped.has(url)) skipped.set(url, why)
+  }
+  const add = (href: string, base: string, tier: number) => {
+    const v = classifyUrl(href, base, o.origin)
+    if (!v.ok) {
+      if (REPORTED.has(v.why)) skip(v.url, v.why)
+      else if (v.why === 'query variant') add(withoutQuery(v.url), base, tier)
+      return
+    }
+    const cur = inventory.get(v.url)
+    if (cur) {
+      cur.tier = Math.min(cur.tier, tier)
+      return
+    }
+    if (!robotsAllows(o.robots, v.path)) {
+      skip(v.url, 'robots.txt disallows')
+      return
+    }
+    if (inventory.size >= INVENTORY_CAP) return
+    const e: Entry = {
+      url: v.url,
+      path: v.path,
+      tier,
+      seq: seq++,
+      state: 'queued',
+    }
+    inventory.set(v.url, e)
+    bump(segSize, firstSegment(v.path))
+    queued.push(e)
+  }
+  for (const s of o.seeds) add(s, o.origin, 0)
+  if (o.discover) for (const s of o.sitemap) add(s, o.origin, 4)
+
+  /* Sort key, lowest first: [tier, pages already started in its group, not the group's own index
+     page, discovery tier, discovery order]; undefined = its parent path is capped. A group's first
+     pick is therefore its index (/services before /services/roofing) when that is known. */
+  const rank = (e: Entry): Array<number> | undefined => {
+    const dir = dirOf(e.path)
+    const seg = firstSegment(e.path)
+    const inDir = dir === '/' ? 0 : (startedDir.get(dir) ?? 0)
+    if (o.perDirCap !== undefined && inDir >= o.perDirCap) return undefined
+    const inSeg = startedSeg.get(seg) ?? 0
+    let tier = e.tier
+    if (tier > 2 && inSeg === 0 && (segSize.get(seg) ?? 0) >= 2) tier = 2
+    if (inDir >= 3) tier = Math.max(tier, 5)
+    return [tier, inSeg, e.path === seg ? 0 : 1, e.tier, e.seq]
+  }
+  const before = (a: Array<number>, b: Array<number>) => {
+    for (let i = 0; i < a.length; i++) {
+      const x = a[i] ?? 0
+      const y = b[i] ?? 0
+      if (x !== y) return x < y
+    }
+    return false
+  }
+  const pop = () => {
+    let best: { i: number; r: Array<number> } | undefined
+    queued.forEach((e, i) => {
+      const r = rank(e)
+      if (r && (!best || before(r, best.r))) best = { i, r }
+    })
+    return best ? queued.splice(best.i, 1)[0] : undefined
+  }
+
+  const state = { budgetSpent: false }
+  let seedsRunning = 0
+  const run = async (job: Entry) => {
+    let res: Loaded<T>
+    try {
+      res = (
+        await o.scheduler.run('page', (signal, timeoutMs) =>
+          o.load(job.url, signal, timeoutMs),
+        )
+      ).value
+    } catch (e) {
+      if (e instanceof BudgetError) {
+        state.budgetSpent = true
+        job.state = 'queued'
+        queued.push(job)
+      } else if (!(e instanceof SiteDownError))
+        skip(job.url, `error: ${errorText(e, o.scheduler.p.timeoutMs)}`)
+      return
+    }
+    if (res.kind === 'skip') {
+      skip(job.url, res.why)
+      return
+    }
+    const final = classifyUrl(res.finalUrl, job.url, o.origin)
+    if (!final.ok) {
+      skip(
+        job.url,
+        final.why === 'off-origin'
+          ? 'redirects off-origin'
+          : `redirects to ${final.why}`,
+      )
+      return
+    }
+    if (done.has(final.url) || pages.length >= o.max) return
+    done.add(final.url)
+    if (final.url !== job.url && !inventory.has(final.url)) {
+      inventory.set(final.url, { ...job, url: final.url, path: final.path })
+      bump(segSize, firstSegment(final.path))
+    }
+    pages.push({ url: final.url, path: final.path, data: res.data })
+    if (o.discover)
+      for (const l of res.links)
+        add(l.href, final.url, l.zone === 'nav' ? 1 : 3)
+  }
+  const running = new Set<Promise<void>>()
+  for (;;) {
+    while (
+      !state.budgetSpent &&
+      !o.scheduler.down &&
+      !(o.discover && seedsRunning) &&
+      running.size < o.scheduler.concurrency &&
+      pages.length + running.size < o.max
+    ) {
+      const job = pop()
+      if (!job) break
+      job.state = 'running'
+      bump(startedDir, dirOf(job.path))
+      bump(startedSeg, firstSegment(job.path))
+      const seed = job.tier === 0
+      if (seed) seedsRunning++
+      const p: Promise<void> = run(job).finally(() => {
+        if (seed) seedsRunning--
+        if (job.state === 'running') job.state = 'done'
+        running.delete(p)
+      })
+      running.add(p)
+    }
+    if (!running.size) break
+    await Promise.race(running)
+  }
+  pages.sort((a, b) =>
+    a.path === '/' ? -1 : b.path === '/' ? 1 : a.path.localeCompare(b.path),
+  )
+  const all = [...inventory.values()]
+  return {
+    pages,
+    skipped: [...skipped.entries()].map(([url, why]) => ({ url, why })),
+    found: all.length,
+    notFetched: all.filter((e) => e.state === 'queued').length,
+    groups: groupPages(
+      all.map((e) => e.path),
+      pages.map((p) => p.path),
+    ),
+    inventory: all.map((e) => e.path),
+    aborted: o.scheduler.down,
+  }
 }
