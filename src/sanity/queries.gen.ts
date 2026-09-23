@@ -3,7 +3,7 @@ import { defineQuery } from 'groq'
 
 export const artistBySlugQuery =
   defineQuery(`*[_type == "artist" && slug.current == $slug][0]{
-  _id, name, "slug": slug.current, "portrait": portrait{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, bio, links[]{label, href}, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex },
+  _id, name, "slug": slug.current, "portrait": portrait{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, "bio": bio[]{ _type == "block" => { ... }, _type == "imageWithAlt" => { _type, _key, asset, alt }, _type == "embed" => { _type, _key, url } }, links[]{label, href}, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex },
   "artworks": *[_type == "artwork" && artist._ref == ^._id] | order(year desc){ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }
 }`)
 
@@ -13,7 +13,7 @@ export const artistsQuery = defineQuery(
 
 export const artworkBySlugQuery =
   defineQuery(`*[_type == "artwork" && slug.current == $slug][0]{
-  _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags, caption, dimensions, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, description,
+  _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags, caption, dimensions, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, "description": description[]{ _type == "block" => { ... }, _type == "imageWithAlt" => { _type, _key, asset, alt }, _type == "embed" => { _type, _key, url } },
   exhibitions[]->{ _id, title, "slug": slug.current }, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex }
 }`)
 
@@ -35,7 +35,7 @@ export const artworksQuery = defineQuery(`*[_type == "artwork"
 ] | order(featured desc, coalesce(date, string(year) + "-01-01") desc, title asc)[0...$limit]{ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }`)
 
 export const eventBySlugQuery = defineQuery(
-  `*[_type == "event" && slug.current == $slug][0]{ _id, title, "slug": slug.current, start, end, allDay, location, venue->{ _id, name, "slug": slug.current, address, mapLink }, price, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, series->{ _id, title, "slug": slug.current }, ticketUrl, body, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex } }`,
+  `*[_type == "event" && slug.current == $slug][0]{ _id, title, "slug": slug.current, start, end, allDay, location, venue->{ _id, name, "slug": slug.current, address, mapLink }, price, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, series->{ _id, title, "slug": slug.current }, ticketUrl, "body": body[]{ _type == "block" => { ... }, _type == "imageWithAlt" => { _type, _key, asset, alt }, _type == "embed" => { _type, _key, url } }, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex } }`,
 )
 
 export const eventSeriesQuery = defineQuery(
@@ -49,7 +49,7 @@ export const eventsQuery =
 
 export const exhibitionBySlugQuery =
   defineQuery(`*[_type == "exhibition" && slug.current == $slug][0]{
-  _id, title, "slug": slug.current, start, end, venue, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artists[]->{ _id, name, "slug": slug.current }, body, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, pressLinks[]{label, href},
+  _id, title, "slug": slug.current, start, end, venue, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artists[]->{ _id, name, "slug": slug.current }, "body": body[]{ _type == "block" => { ... }, _type == "imageWithAlt" => { _type, _key, asset, alt }, _type == "embed" => { _type, _key, url } }, "images": images[]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, pressLinks[]{label, href},
   "pressRelease": select(defined(pressRelease.asset) => { "url": pressRelease.asset->url, "label": pressReleaseLabel }), seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex },
   "artworks": artworks[]->{ _id, title, "slug": slug.current, year, date, collection, medium, "image": images[0]{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, artist->{ _id, name, "slug": slug.current }, tags }
 }`)
@@ -65,17 +65,17 @@ export const pageBySlugQuery =
   _id, title, "slug": slug.current, blocks[]{ _key, _type, _type == "artistList" => { eyebrow, heading, columns },
   _type == "artworkGrid" => { eyebrow, heading, intro, columns, collection, limit, featuredOnly, showFilters, cta },
   _type == "cardGrid" => { eyebrow, heading, columns, cards[]{ _key, title, body, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, link } },
-  _type == "contactForm" => { eyebrow, heading, intro, showSubject, buttonLabel, successMessage, aside },
+  _type == "contactForm" => { eyebrow, heading, intro, showSubject, buttonLabel, successMessage, "aside": aside[]{ _type == "block" => { ... }, _type == "imageWithAlt" => { _type, _key, asset, alt }, _type == "embed" => { _type, _key, url } } },
   _type == "eventCalendar" => { eyebrow, heading, view, limit, showFilters, cta },
   _type == "exhibitionList" => { eyebrow, heading, mode, pastLimit, cta },
   _type == "hero" => { layout, eyebrow, heading, body, cta, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } } },
   _type == "newsletterSignup" => { eyebrow, heading, body, buttonLabel, tone },
   _type == "postList" => { eyebrow, heading, limit, columns, cta },
-  _type == "richTextBlock" => { heading, content } }, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex }
+  _type == "richTextBlock" => { heading, "content": content[]{ _type == "block" => { ... }, _type == "imageWithAlt" => { _type, _key, asset, alt }, _type == "embed" => { _type, _key, url } } } }, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex }
 }`)
 
 export const postBySlugQuery = defineQuery(
-  `*[_type == "post" && slug.current == $slug][0]{ _id, title, "slug": slug.current, date, excerpt, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, tags, body, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex } }`,
+  `*[_type == "post" && slug.current == $slug][0]{ _id, title, "slug": slug.current, date, excerpt, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, tags, "body": body[]{ _type == "block" => { ... }, _type == "imageWithAlt" => { _type, _key, asset, alt }, _type == "embed" => { _type, _key, url } }, seo{ title, description, "image": image{ _type, asset, alt, caption, hotspot, crop, "meta": asset->metadata{ lqip, "width": dimensions.width, "height": dimensions.height } }, noIndex } }`,
 )
 
 export const postsQuery = defineQuery(

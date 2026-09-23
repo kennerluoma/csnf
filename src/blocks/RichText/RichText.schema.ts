@@ -1,4 +1,5 @@
 import { defineField, defineType } from '@sanity/types'
+import { rich } from '../../sanity/img'
 
 export const richTextBlockSchema = defineType({
   name: 'richTextBlock',
@@ -19,4 +20,4 @@ export const richTextBlockSchema = defineType({
   },
 })
 
-export const richTextBlockProjection = /* groq */ `_type == "richTextBlock" => { heading, content }`
+export const richTextBlockProjection = /* groq */ `_type == "richTextBlock" => { heading, ${rich('content')} }`

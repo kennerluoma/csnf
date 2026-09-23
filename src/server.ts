@@ -11,6 +11,17 @@ import {
 } from '@tanstack/react-start/server'
 import { collected } from '#/lib/staticData'
 import { extendForStaleWindow, isrStatus, parsePolicy } from '#/lib/isr-cache'
+import { redirectFor, redirectTable } from '#/lib/redirects'
+
+// Written by a content import (`pnpm run import`); a glob, so a project without the file builds.
+const redirects = redirectTable(
+  Object.values(
+    import.meta.glob<unknown>('../design/redirects.json', {
+      eager: true,
+      import: 'default',
+    }),
+  )[0],
+)
 
 const start = createStartHandler(
   defineHandlerCallback((ctx) => defaultStreamHandler(ctx)),
@@ -63,6 +74,15 @@ async function fetch(
     return /^(localhost|127\.0\.0\.1)$/.test(url.hostname)
       ? Response.json(Object.fromEntries(collected()))
       : new Response(null, { status: 404 })
+  // The imported site's old URLs keep working: 301 to where that content lives now.
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    const to = redirectFor(redirects, url.pathname)
+    if (to)
+      return new Response(null, {
+        status: 301,
+        headers: { location: new URL(to + url.search, url).href },
+      })
+  }
   // A data file that wasn't prebuilt: answer cheaply, the client falls back to the server function.
   if (url.pathname.startsWith('/static-data/'))
     return new Response(null, { status: 404 })

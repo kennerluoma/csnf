@@ -2,6 +2,7 @@
    (artworkGrid, exhibitionList, eventCalendar, postList); detail routes live in src/routes. */
 import { defineField, defineType } from '@sanity/types'
 import type { PreviewValue } from '@sanity/types'
+import { importedFields, importedFieldset } from './objects'
 
 /* A selected image field handed straight back as the preview's media: Sanity's own type for that slot. */
 type Media = PreviewValue['media']
@@ -19,6 +20,7 @@ export const artist = defineType({
   name: 'artist',
   title: 'Artist',
   type: 'document',
+  fieldsets: [importedFieldset],
   fields: [
     defineField({
       name: 'name',
@@ -30,6 +32,7 @@ export const artist = defineType({
     defineField({ name: 'bio', type: 'richText' }),
     defineField({ name: 'links', type: 'array', of: [{ type: 'link' }] }),
     seoField,
+    ...importedFields,
   ],
   preview: { select: { title: 'name', media: 'portrait' } },
 })
@@ -38,6 +41,7 @@ export const artwork = defineType({
   name: 'artwork',
   title: 'Artwork',
   type: 'document',
+  fieldsets: [importedFieldset],
   fields: [
     defineField({
       name: 'title',
@@ -106,6 +110,7 @@ export const artwork = defineType({
     }),
     defineField({ name: 'featured', type: 'boolean', initialValue: false }),
     seoField,
+    ...importedFields,
   ],
   orderings: [
     {
@@ -143,6 +148,7 @@ export const exhibition = defineType({
   name: 'exhibition',
   title: 'Exhibition',
   type: 'document',
+  fieldsets: [importedFieldset],
   fields: [
     defineField({
       name: 'title',
@@ -182,6 +188,7 @@ export const exhibition = defineType({
       description: 'Link text; defaults to "Press release".',
     }),
     seoField,
+    ...importedFields,
   ],
   orderings: [
     {
@@ -216,6 +223,7 @@ export const venue = defineType({
   type: 'document',
   description:
     'A place events happen at. Events reference it; one-off locations can stay free text.',
+  fieldsets: [importedFieldset],
   fields: [
     defineField({
       name: 'name',
@@ -225,6 +233,7 @@ export const venue = defineType({
     slugField('name'),
     defineField({ name: 'address', type: 'text', rows: 3 }),
     defineField({ name: 'mapLink', type: 'url' }),
+    ...importedFields,
   ],
   preview: { select: { title: 'name', subtitle: 'address' } },
 })
@@ -235,6 +244,7 @@ export const eventSeries = defineType({
   type: 'document',
   description:
     'A category for events (talks, workshops, openings). Used as a calendar filter.',
+  fieldsets: [importedFieldset],
   fields: [
     defineField({
       name: 'title',
@@ -243,6 +253,7 @@ export const eventSeries = defineType({
     }),
     slugField(),
     defineField({ name: 'description', type: 'text', rows: 2 }),
+    ...importedFields,
   ],
 })
 
@@ -250,6 +261,7 @@ export const event = defineType({
   name: 'event',
   title: 'Event',
   type: 'document',
+  fieldsets: [importedFieldset],
   fields: [
     defineField({
       name: 'title',
@@ -285,6 +297,7 @@ export const event = defineType({
     defineField({ name: 'image', type: 'imageWithAlt' }),
     defineField({ name: 'body', type: 'richText' }),
     seoField,
+    ...importedFields,
   ],
   orderings: [
     {
@@ -322,6 +335,7 @@ export const post = defineType({
   name: 'post',
   title: 'News post',
   type: 'document',
+  fieldsets: [importedFieldset],
   fields: [
     defineField({
       name: 'title',
@@ -345,6 +359,7 @@ export const post = defineType({
       options: { layout: 'tags' },
     }),
     seoField,
+    ...importedFields,
   ],
   orderings: [
     {

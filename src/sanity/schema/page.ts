@@ -1,10 +1,12 @@
 import { defineField, defineType } from '@sanity/types'
 import { blockSchemaNames } from '../../blocks/schemas'
+import { importedFields, importedFieldset } from './objects'
 
 export const page = defineType({
   name: 'page',
   title: 'Page',
   type: 'document',
+  fieldsets: [importedFieldset],
   fields: [
     defineField({
       name: 'title',
@@ -25,6 +27,7 @@ export const page = defineType({
       of: blockSchemaNames.map((name) => ({ type: name })),
     }),
     defineField({ name: 'seo', type: 'seo' }),
+    ...importedFields,
   ],
   preview: { select: { title: 'title', subtitle: 'slug.current' } },
 })

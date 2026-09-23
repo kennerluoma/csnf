@@ -21,6 +21,7 @@
     "seed": "node --env-file=.env --experimental-strip-types scripts/seed.ts",
     "pages": "node --env-file=.env --experimental-strip-types scripts/pages.ts",
     "extract": "node --env-file-if-exists=.env --experimental-strip-types scripts/extract.ts",
+    "import": "node --env-file-if-exists=.env --experimental-strip-types scripts/import.ts",
     "shot": "node --env-file=.env --experimental-strip-types scripts/shot.ts",
     "inventory": "node --experimental-strip-types scripts/inventory.ts",
     "budget": "node --experimental-strip-types scripts/budget.ts",
