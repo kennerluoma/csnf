@@ -89,10 +89,10 @@ Anything not listed: prefer no dependency, then the smallest well-maintained one
 
 ## Scripts
 
-- `pnpm extract` · Figma → `design/manifest.json` + `design/renders/*.png` (needs `FIGMA_TOKEN`); `--from-file <figma.json>` offline; `--normalise design/manifest.json` re-runs the normaliser on a plugin-exported manifest; `--from-fig <file.fig> [--page NAME]` reads a local Figma export (no API; no renders)
+- `pnpm extract` · Figma → `design/manifest.json` + `design/renders/*.png` (needs `FIGMA_TOKEN`); `--from-file <figma.json>` offline; `--normalise design/manifest.json` re-runs the normaliser on a plugin-exported manifest; `--from-fig <file.fig> [--page NAME]` reads a local Figma export (no API; no renders); `--from-url <url> [--max-pages 30] [--only /a,/b] [--mobile-width 390]` recreates a live website (Playwright crawl of the same origin, robots.txt respected: desktop + mobile renders, sections, tokens, images, and `collections` for pages that share a template; the origin is recorded in `manifest.source`), `--inspect --json` lists its pages/fonts/colours in seconds without a browser
 - `pnpm shot [url]` · Playwright screenshots of every route → `design/shots/*.png`
 - `pnpm visual` · the built site next to the design renders → `design/visual-report.md`, `design/visual.json` and side-by-side strips in `design/visual/` for the routes furthest from the design. Scores are words (`match` / `close` / `different` / `no reference`), never a gate; CI runs it on every PR and keeps one comment up to date. A `.fig` import has no renders, so every route there reads `no reference`
-- `pnpm seed` · write seed documents of every type to Sanity (needs `SANITY_WRITE_TOKEN`) · `pnpm pages` · write page documents from the manifest
+- `pnpm seed` · write seed documents of every type to Sanity (needs `SANITY_WRITE_TOKEN`) · `pnpm pages` · write page documents from the manifest (a website import also seeds its collections as documents; `--dry-run` prints the plan) · `pnpm test` · node:test unit tests for `scripts/`
 
 ## Lessons
 

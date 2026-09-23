@@ -20,13 +20,14 @@
     "build:admin": "pnpm --filter admin build",
     "seed": "node --env-file=.env --experimental-strip-types scripts/seed.ts",
     "pages": "node --env-file=.env --experimental-strip-types scripts/pages.ts",
-    "extract": "node --env-file=.env --experimental-strip-types scripts/extract.ts",
+    "extract": "node --env-file-if-exists=.env --experimental-strip-types scripts/extract.ts",
     "shot": "node --env-file=.env --experimental-strip-types scripts/shot.ts",
     "inventory": "node --experimental-strip-types scripts/inventory.ts",
     "budget": "node --experimental-strip-types scripts/budget.ts",
     "visual": "node --experimental-strip-types scripts/visual.ts",
     "audit": "pnpm audit --prod --audit-level high",
-    "typegen": "node --experimental-strip-types scripts/typegen.ts"
+    "typegen": "node --experimental-strip-types scripts/typegen.ts",
+    "test": "node --experimental-strip-types --test scripts/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
