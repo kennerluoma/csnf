@@ -160,6 +160,8 @@ type State = {
   failedImages: Record<string, string>
   redirects?: number
   complete: boolean
+  /** Started with --confirm: a --resume of it needs no second confirmation. */
+  confirmed?: boolean
 }
 
 function readState(path: string): State | undefined {
@@ -213,6 +215,7 @@ function readState(path: string): State | undefined {
     failedImages: strs(r.failedImages),
     ...(typeof r.redirects === 'number' && { redirects: r.redirects }),
     complete: r.complete === true,
+    ...(r.confirmed === true && { confirmed: true }),
   }
 }
 
@@ -598,6 +601,7 @@ export async function runImport(o: Options, deps: { get?: Get } = {}) {
         complete: false,
       }
   if (!sameSource) await store.reset()
+  if (o.confirm) state.confirmed = true
   say(
     `source: ${source.label}${source.api ? ` (REST API ${source.api})` : ''}${source.url ? ` at ${source.url}` : ''}${source.file ? ` ${source.file}` : ''}`,
   )
@@ -941,7 +945,7 @@ export async function runImport(o: Options, deps: { get?: Get } = {}) {
   if (!client) throw new Error('VITE_SANITY_PROJECT_ID is not set (.env)')
   if (!process.env.SANITY_WRITE_TOKEN)
     throw new Error('SANITY_WRITE_TOKEN is not set (.env); a build writes it')
-  if (unrelatedTotal && !o.confirm && !state.done.length)
+  if (unrelatedTotal && !o.confirm && !state.confirmed && !state.done.length)
     throw new ConfirmError(
       `the dataset already has ${countLabel(unrelatedTotal, 'document')} the importer did not write; pass --confirm to import alongside them (nothing is deleted or replaced)`,
     )
