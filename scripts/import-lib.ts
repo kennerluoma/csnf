@@ -1229,6 +1229,8 @@ export type PageContent = {
   featured?: SourceImage
   /** The main content only: chrome, navigation, forms, sharing and comment widgets removed. */
   body: HNode
+  /** A list of other pages (an archive, a blog index: several <article>s), not content itself. */
+  listing: boolean
 }
 
 /* Readable content of a crawled page: <main> (or the one <article> inside it, or the body minus
@@ -1247,6 +1249,7 @@ export function pageContent(html: string, url: string): PageContent {
   )
   let root = (chrome.main && map.get(chrome.main)) ?? body
   const articles = [...elements(root)].filter((e) => e.tag === 'article')
+  const listing = articles.length >= 3
   const firstArticle = articles[0]
   if (articles.length === 1 && firstArticle) root = firstArticle
   const content = without(
@@ -1296,13 +1299,23 @@ export function pageContent(html: string, url: string): PageContent {
       },
     }),
     body: bodyTree,
+    listing,
   }
 }
 
-/* A crawled page → an Item. `type` comes from `groupType` (the crawl knows the site's sections). */
-export function pageItem(html: string, url: string, type: string): Item {
+/* WordPress-style archives: their pages list other pages. */
+const ARCHIVE = /\/(category|tag|author|topics?)\/[^/]+$/
+
+/* A crawled page → an Item, or undefined for a listing (its links are still followed). `type`
+   comes from `groupType` (the crawl knows the site's sections). */
+export function pageItem(
+  html: string,
+  url: string,
+  type: string,
+): Item | undefined {
   const c = pageContent(html, url)
   const path = normalPath(new URL(url).pathname)
+  if (c.listing || ARCHIVE.test(path)) return undefined
   const slug = path === '/' ? 'home' : slugify(path.slice(1))
   return {
     sourceUrl: url,
@@ -1333,6 +1346,24 @@ export function serialize(n: HNode | string): string {
   return VOID.has(n.tag)
     ? `<${n.tag}${attrs}>`
     : `<${n.tag}${attrs}>${inner}</${n.tag}>`
+}
+
+/* A site that lives under a path (https://x.org/news/) is crawled there only: robots-style rules
+   (the crawler already obeys them) that allow the start path and what is below it, nothing else.
+   The site's own robots.txt rules still apply inside. */
+export function scopeRules<R extends { allow: boolean; pattern: string }>(
+  rules: Array<R>,
+  startPath: string,
+  make: (allow: boolean, pattern: string) => R,
+): Array<R> {
+  const p = normalPath(startPath)
+  if (p === '/') return rules
+  return [...rules, make(false, '/'), make(true, `${p}$`), make(true, `${p}/`)]
+}
+export const inScope = (path: string, startPath: string) => {
+  const p = normalPath(startPath)
+  const x = normalPath(path)
+  return p === '/' || x === p || x.startsWith(`${p}/`)
 }
 
 /* The source type of a crawled or exported page from its path: the manifest's collection whose

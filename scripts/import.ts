@@ -1,5 +1,6 @@
 /* An existing site's content → this project's Sanity dataset (plan 08). Uses no model tokens.
      pnpm run import --url <https://site> [--max N] [--dry-run] [--confirm] [--resume] [--json]
+                     [--crawl]   read pages even when the site has a WordPress API (locked-down API)
      pnpm run import --file <export.xml|.json|.csv> [...]
    (`pnpm import` is pnpm's own lockfile command, hence `run`.)
 
@@ -51,6 +52,7 @@ import {
   FOLDED,
   formatCount,
   groupType,
+  inScope,
   isRec,
   list,
   mapItem,
@@ -64,6 +66,7 @@ import {
   rec,
   redirectMap,
   resolveTypes,
+  scopeRules,
   sha1,
   str,
   targetTypes,
@@ -100,6 +103,8 @@ export type Options = {
   state: string
   json: boolean
   ignoreRobots: boolean
+  /** Crawl the pages even when a WordPress REST API answers. */
+  crawl: boolean
 }
 
 export function parseArgs(argv: Array<string>): Options {
@@ -129,6 +134,7 @@ export function parseArgs(argv: Array<string>): Options {
     state: resolve(after('--state') ?? '.agency/import/state.json'),
     json: argv.includes('--json'),
     ignoreRobots: argv.includes('--ignore-robots'),
+    crawl: argv.includes('--crawl'),
   }
 }
 
@@ -374,18 +380,22 @@ async function readCapped(
 
 // ---- detect ----
 
+/* robots.txt and sitemaps, read once per origin. */
+const rules = new Map<string, ReturnType<typeof siteRules>>()
+function rulesFor(origin: string, o: Options, get: Get) {
+  let r = rules.get(origin)
+  if (!r) {
+    r = siteRules(origin, o.ignoreRobots, schedulerFor(origin), get)
+    rules.set(origin, r)
+  }
+  return r
+}
 async function robotsFor(
   origin: string,
   o: Options,
   get: Get,
 ): Promise<Robots> {
-  const { robots } = await siteRules(
-    origin,
-    o.ignoreRobots,
-    schedulerFor(origin),
-    get,
-  )
-  return robots
+  return (await rulesFor(origin, o, get)).robots
 }
 
 async function detectWordPress(
@@ -569,7 +579,7 @@ export async function runImport(o: Options, deps: { get?: Get } = {}) {
     }
   } else {
     const url = o.url ?? ''
-    const api = await detectWordPress(url, get)
+    const api = o.crawl ? undefined : await detectWordPress(url, get)
     source = api
       ? { kind: 'wordpress', url, api, label: 'WordPress' }
       : { kind: 'html', url, label: 'website (HTML crawl)' }
@@ -655,15 +665,13 @@ export async function runImport(o: Options, deps: { get?: Get } = {}) {
       if (n !== undefined) state.counts[key] = n
     }
   } else if (source.kind === 'html' && origin && source.url) {
-    const { sitemapUrls } = await siteRules(
-      origin,
-      o.ignoreRobots,
-      schedulerFor(origin),
-      get,
-    )
+    const { sitemapUrls } = await rulesFor(origin, o, get)
+    const start = new URL(source.url).pathname
     state.counts.pages = new Set([
       source.url,
-      ...sitemapUrls.filter((u) => u.startsWith(origin)),
+      ...sitemapUrls.filter(
+        (u) => u.startsWith(origin) && inScope(new URL(u).pathname, start),
+      ),
     ]).size
   } else if (source.file) {
     const text = await readFile(source.file, 'utf8')
@@ -750,15 +758,29 @@ export async function runImport(o: Options, deps: { get?: Get } = {}) {
     const s = schedulerFor(origin)
     const max = o.max ?? 10_000
     s.setBudget('page', max * 2)
-    const { sitemapUrls } = await siteRules(origin, o.ignoreRobots, s, get)
+    const { sitemapUrls } = await rulesFor(origin, o, get)
+    const start = new URL(source.url).pathname
     let n = 0
-    const result = await crawl<Item>({
+    let listings = 0
+    const result = await crawl<undefined>({
       origin,
       seeds: [source.url],
-      sitemap: sitemapUrls,
+      sitemap: sitemapUrls.filter((u) => {
+        try {
+          return inScope(new URL(u).pathname, start)
+        } catch {
+          return false
+        }
+      }),
       discover: true,
       max,
-      robots,
+      robots: {
+        ...robots,
+        rules: scopeRules(robots.rules, start, (allow, pattern) => ({
+          allow,
+          pattern,
+        })),
+      },
       scheduler: s,
       load: async (url, signal) => {
         const res = await get(url, {
@@ -782,15 +804,29 @@ export async function runImport(o: Options, deps: { get?: Get } = {}) {
         }
         const html = await res.text()
         const item = pageItem(html, finalUrl, '')
-        await store.add([item])
+        if (item) await store.add([item])
+        else listings++
         n++
         if (n % PER_PAGE === 0) say(`fetched ${formatCount(n)} pages`)
         return {
           status: res.status,
           retryAfter,
-          value: { kind: 'page', finalUrl, links: htmlLinks(html), data: item },
+          value: {
+            kind: 'page',
+            finalUrl,
+            links: htmlLinks(html),
+            data: undefined,
+          },
         }
       },
+    })
+    // Pages outside the start path were never candidates; they are not "skipped".
+    const skipped = result.skipped.filter((x) => {
+      try {
+        return inScope(new URL(x.url).pathname, start)
+      } catch {
+        return true
+      }
     })
     const segs = new Map<string, number>()
     for (const p of result.inventory) {
@@ -801,10 +837,9 @@ export async function runImport(o: Options, deps: { get?: Get } = {}) {
     state.segments = Object.fromEntries(segs)
     state.counts.pages = result.found
     say(
-      `fetched ${formatCount(result.pages.length)} of ${formatCount(result.found)} pages${result.skipped.length ? `; skipped ${result.skipped.length}` : ''}`,
+      `fetched ${formatCount(result.pages.length)} of ${formatCount(result.found)} pages${listings ? ` (${formatCount(listings)} listing/archive pages followed, not imported)` : ''}${skipped.length ? `; skipped ${skipped.length}` : ''}`,
     )
-    for (const x of result.skipped.slice(0, 10))
-      say(`  skipped ${x.url} (${x.why})`)
+    for (const x of skipped.slice(0, 10)) say(`  skipped ${x.url} (${x.why})`)
     if (result.aborted) throw new Error(result.aborted)
   } else {
     await store.add(fileItems)
