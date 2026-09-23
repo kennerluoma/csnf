@@ -9,8 +9,8 @@
     "typegen": "sanity schema extract --path ../schema.json && sanity typegen generate"
   },
   "dependencies": {
-    "@sanity/types": "^6.13.1",
-    "@sanity/vision": "^6.13.1",
+    "@sanity/types": "^6.13.2",
+    "@sanity/vision": "^6.13.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sanity": "^6.13.1",
