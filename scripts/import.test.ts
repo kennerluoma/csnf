@@ -370,7 +370,15 @@ void test('pageContent: main content only, title, date and og:image', () => {
   assert.equal(c.featured?.url, 'https://site.test/og.jpg')
   assert.equal(textOf(c.body).replace(/\s+/g, ' ').trim(), 'Real text.')
   const item = pageItem(html, 'https://site.test/news/hello', '')
-  assert.equal(item.slug, 'news/hello')
+  assert.equal(item?.slug, 'news/hello')
+  // Listings and archives are followed, not imported.
+  const list =
+    '<main><article><a href="/a">A</a></article><article>B</article><article>C</article></main>'
+  assert.equal(pageItem(list, 'https://site.test/news', ''), undefined)
+  assert.equal(
+    pageItem('<main><p>x</p></main>', 'https://site.test/category/design', ''),
+    undefined,
+  )
   assert.equal(
     serialize(parseHtml('<p a="&quot;">x &lt; y</p>')),
     '<p a="&quot;">x &lt; y</p>',
@@ -755,4 +763,26 @@ void test('shareOut: --max spread over types, small types take all they have', a
   assert.deepEqual(shareOut([2, 1109, 86], 40), [2, 19, 19])
   assert.deepEqual(shareOut([2, 1109, 86], undefined), [2, 1109, 86])
   assert.deepEqual(shareOut([0, 5], 40), [0, 5])
+})
+
+void test('scopeRules / inScope: a site under /news/ is crawled there only', async () => {
+  const { robotsAllows } = await import('./website-lib.ts')
+  const { inScope, scopeRules } = await import('./import-lib.ts')
+  const base = [{ allow: false, pattern: '/news/private' }]
+  const robots = {
+    sitemaps: [],
+    rules: scopeRules(base, '/news/', (allow, pattern) => ({ allow, pattern })),
+  }
+  assert.equal(robotsAllows(robots, '/news'), true)
+  assert.equal(robotsAllows(robots, '/news/2024/05/a'), true)
+  assert.equal(robotsAllows(robots, '/newsletter'), false)
+  assert.equal(robotsAllows(robots, '/plugins'), false)
+  assert.equal(robotsAllows(robots, '/news/private/x'), false) // the site's own rule still wins
+  assert.equal(
+    scopeRules(base, '/', (allow, pattern) => ({ allow, pattern })),
+    base,
+  )
+  assert.equal(inScope('/news/a', '/news/'), true)
+  assert.equal(inScope('/newsletter', '/news'), false)
+  assert.equal(inScope('/anything', '/'), true)
 })
