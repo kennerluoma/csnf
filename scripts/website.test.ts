@@ -5,14 +5,21 @@ import type { Browser } from 'playwright'
 import {
   classifyUrl,
   detectCollections,
+  groupPages,
   htmlLinks,
   parseRobots,
   parseSitemap,
+  retryAfterMs,
   robotsAllows,
+  Scheduler,
   segment,
+  SITE_DOWN,
+  SiteDownError,
   snapshotDom,
 } from './website-lib.ts'
-import type { CrawledPage, WebSection } from './website-lib.ts'
+import type { CrawledPage, Politeness, WebSection } from './website-lib.ts'
+import { inspectSite, parseArgs, USER_AGENT } from './website.ts'
+import type { Get } from './website.ts'
 
 const origin = 'https://example.com'
 const why = (href: string) => {
@@ -326,4 +333,285 @@ void test('detectCollections: pages with a different template do not join the co
   const { collections, members } = detectCollections(pages, origin)
   assert.equal(collections[0]?.instances.length, 3)
   assert.equal(members.has('/work/essay'), false)
+})
+
+void test('detectCollections: unfetched siblings from the inventory count as list links and are listed', () => {
+  const pages = [
+    list('/work', ['/work/a', '/work/b', '/work/x', '/work/y']),
+    detail('a'),
+    detail('b'),
+    detail('c'),
+  ]
+  const inventory = [
+    '/work',
+    '/work/a',
+    '/work/b',
+    '/work/c',
+    '/work/x',
+    '/work/y',
+    '/about',
+  ]
+  const { collections } = detectCollections(pages, origin, undefined, inventory)
+  const c = collections[0]
+  assert.ok(c)
+  assert.equal(c.instances.length, 3)
+  assert.equal(c.found, 5)
+  assert.deepEqual(c.notFetched, ['/work/x', '/work/y'])
+})
+
+// ---- politeness: scheduler and staged inspect against a fake server ----
+
+/* Timings scaled down so the suite stays fast; the shape of the behaviour is what is tested. */
+const FAST: Politeness = {
+  concurrency: 2,
+  minGapMs: 25,
+  timeoutMs: 120,
+  retryDelayMs: 10,
+  slowAfter: 2,
+  cooldownMs: 60,
+  abortAfter: 8,
+  maxRetryAfterMs: 5000,
+}
+const html = (body: string, title = 'Page') =>
+  new Response(
+    `<!doctype html><html><head><title>${title} | Heyday</title></head><body>${body}</body></html>`,
+    { headers: { 'content-type': 'text/html; charset=utf-8' } },
+  )
+const wait = (ms: number) =>
+  new Promise<void>((r) => {
+    setTimeout(r, ms)
+  })
+const hang = (signal: AbortSignal) =>
+  new Promise<Response>((_, reject) => {
+    signal.addEventListener('abort', () => {
+      reject(
+        new DOMException(
+          'The operation was aborted due to timeout',
+          'TimeoutError',
+        ),
+      )
+    })
+  })
+
+/* A fake server: `handle` answers by path; every request is logged with its start time and the
+   number of requests in flight when it started. */
+function fakeSite(
+  handle: (path: string, signal: AbortSignal) => Promise<Response> | Response,
+) {
+  const calls: Array<{ path: string; at: number; inFlight: number }> = []
+  let inFlight = 0
+  const get: Get = async (url, { signal }) => {
+    inFlight++
+    calls.push({ path: new URL(url).pathname, at: Date.now(), inFlight })
+    try {
+      return await handle(new URL(url).pathname, signal)
+    } finally {
+      inFlight--
+    }
+  }
+  return { get, calls }
+}
+const pageCalls = (calls: Array<{ path: string }>) =>
+  calls.filter((c) => !/\.(txt|xml|css)$/.test(c.path))
+const gaps = (calls: Array<{ at: number }>) =>
+  calls.slice(1).map((c, i) => c.at - (calls[i]?.at ?? 0))
+const opts = (...extra: Array<string>) =>
+  parseArgs(['--from-url', `${origin}/`, '--json', ...extra])
+
+/* A small business site: 5 nav pages, 380 service pages, 12 projects, 40 service areas. */
+const range = <T>(n: number, f: (i: number) => T): Array<T> =>
+  Array.from({ length: n }, (_, i) => f(i))
+const NAV = ['/services', '/projects', '/service-area', '/about', '/contact']
+const SITEMAP = [
+  ...NAV,
+  ...range(380, (i) => `/services/s${i}`),
+  ...range(12, (i) => `/projects/p${i}`),
+  ...range(40, (i) => `/service-area/a${i}`),
+]
+const smallBusiness = (
+  page: (path: string, signal: AbortSignal) => Promise<Response> | Response,
+) =>
+  fakeSite((path, signal) => {
+    if (path === '/robots.txt') return new Response('User-agent: *\nAllow: /\n')
+    if (path === '/sitemap.xml')
+      return new Response(
+        `<urlset>${SITEMAP.map((p) => `<url><loc>${origin}${p}</loc></url>`).join('')}</urlset>`,
+      )
+    return page(path, signal)
+  })
+const homeHtml = () =>
+  html(
+    `<header><nav>${NAV.map((p) => `<a href="${p}">${p}</a>`).join('')}</nav></header>` +
+      `<main><a href="/services/s1">One</a><a href="/services/s2">Two</a><a href="mailto:hi@x.com">Mail</a><a href="/services?x=1">Q</a><a href="/wp-content/uploads/a.webp">Photo</a></main>` +
+      `<footer><a href="/contact">Contact</a></footer>`,
+    'Home',
+  )
+
+void test('parseArgs: concurrency defaults to 2 and is capped at 4; the crawler says who it is', () => {
+  assert.equal(opts().concurrency, 2)
+  assert.equal(opts('--concurrency', '9').concurrency, 4)
+  assert.equal(opts('--concurrency', '1').concurrency, 1)
+  assert.match(
+    USER_AGENT,
+    /^Kiln\/0\.1 \(\+https:\/\/github\.com\/kennerluoma\/agency-platform; site recreation for the site owner\)$/,
+  )
+})
+
+void test('retryAfterMs reads seconds and HTTP dates', () => {
+  assert.equal(retryAfterMs('3', 0), 3000)
+  assert.equal(retryAfterMs(new Date(10_000).toUTCString(), 4000), 6000)
+  assert.equal(retryAfterMs(null, 0), undefined)
+  assert.equal(retryAfterMs('soon', 0), undefined)
+})
+
+void test('groupPages: first path segment when shared, top-level pages together', () => {
+  assert.deepEqual(
+    groupPages(
+      ['/', '/about', '/services', '/services/a', '/services/b', '/blog/x'],
+      ['/', '/services/a'],
+    ),
+    [
+      { prefix: '/', count: 3, sampled: 1 },
+      { prefix: '/services', count: 3, sampled: 1 },
+    ],
+  )
+})
+
+void test('staged inspect: inventories every page, samples at most --max-pages, 2 at a time, spaced', async () => {
+  const site = smallBusiness(async (path) => {
+    await wait(15)
+    return path === '/'
+      ? homeHtml()
+      : html(`<main><h1>${path}</h1></main>`, path)
+  })
+  const r = await inspectSite(opts('--max-pages', '10'), {
+    get: site.get,
+    polite: FAST,
+  })
+  assert.equal(r.aborted, undefined)
+  assert.equal(r.pages.length, 10)
+  assert.equal(r.found, 1 + SITEMAP.length)
+  assert.equal(r.notFetched, r.found - 10)
+  assert.deepEqual(r.skipped, []) // nothing "over budget", no mailto / query-variant / image-link noise
+  const pagesHit = pageCalls(site.calls)
+  assert.equal(pagesHit.length, 10) // not one request more than the pages it reads
+  // Stage A: robots.txt and the sitemap, then the start page alone; the rest only after it.
+  assert.deepEqual(
+    site.calls.slice(0, 3).map((c) => c.path),
+    ['/robots.txt', '/sitemap.xml', '/'],
+  )
+  assert.equal(site.calls[3]?.inFlight, 1)
+  // Nav links first, then one representative per group.
+  const order = pagesHit.map((c) => c.path)
+  assert.deepEqual(new Set(order.slice(1, 6)), new Set(NAV))
+  assert.ok(order.some((p) => p.startsWith('/projects/')))
+  assert.ok(order.some((p) => p.startsWith('/service-area/')))
+  assert.ok(Math.max(...site.calls.map((c) => c.inFlight)) <= 2)
+  assert.ok(Math.min(...gaps(site.calls)) >= FAST.minGapMs - 2)
+  assert.deepEqual(
+    r.groups.map((g) => [g.prefix, g.count]),
+    [
+      ['/services', 381],
+      ['/service-area', 41],
+      ['/projects', 13],
+      ['/', 3],
+    ],
+  )
+  assert.equal(
+    r.groups.reduce((n, g) => n + g.sampled, 0),
+    10,
+  )
+})
+
+void test('overloaded site: slows to one request, then gives up after 8 failures in a row', async () => {
+  // The hireheyday case: the start page answers, then the server stops answering.
+  const site = smallBusiness((path, signal) =>
+    path === '/' ? homeHtml() : hang(signal),
+  )
+  const r = await inspectSite(opts('--max-pages', '30'), {
+    get: site.get,
+    polite: FAST,
+  })
+  assert.ok(r.aborted?.startsWith(SITE_DOWN))
+  const hits = pageCalls(site.calls)
+  // 1 good page + 8 failed attempts (4 pages, each tried twice); one more may already be in flight.
+  assert.ok(hits.length <= 10, `${hits.length} page requests`)
+  assert.ok(r.skipped.every((x) => /timed out/.test(x.why)))
+})
+
+void test('budget: pages that fail without overloading the server stop at max × 2 attempts', async () => {
+  const site = smallBusiness((path) =>
+    path === '/' ? homeHtml() : new Response('gone', { status: 404 }),
+  )
+  const r = await inspectSite(opts('--max-pages', '3'), {
+    get: site.get,
+    polite: FAST,
+  })
+  assert.equal(r.aborted, undefined)
+  assert.equal(r.pages.length, 1)
+  assert.equal(pageCalls(site.calls).length, 6)
+  assert.ok(r.skipped.every((x) => x.why === 'HTTP 404'))
+  assert.equal(r.notFetched, r.found - 6)
+})
+
+void test('scheduler: one retry for 503, honouring Retry-After; a 404 is an answer, not a failure', async () => {
+  const s = new Scheduler(FAST)
+  const starts: Array<number> = []
+  let n = 0
+  const r = await s.run('page', async () => {
+    starts.push(Date.now())
+    return n++ === 0
+      ? { status: 503, retryAfter: '1', value: 'busy' }
+      : { status: 200, retryAfter: null, value: 'ok' }
+  })
+  assert.equal(r.value, 'ok')
+  assert.equal(starts.length, 2)
+  assert.ok((starts[1] ?? 0) - (starts[0] ?? 0) >= 990)
+  let calls = 0
+  const nf = await s.run('page', async () => {
+    calls++
+    return { status: 404, retryAfter: null, value: 'nf' }
+  })
+  assert.equal(nf.status, 404)
+  assert.equal(calls, 1)
+  assert.equal(s.concurrency, 2)
+})
+
+void test('scheduler: resets drop concurrency to 1 after 2 failures; 8 in a row abort everything', async () => {
+  const s = new Scheduler(FAST, { page: 100 })
+  const seen: Array<{ inFlight: number; failuresBefore: number }> = []
+  let inFlight = 0
+  let failures = 0
+  const reset = () =>
+    new TypeError('fetch failed', {
+      cause: Object.assign(new Error('read ECONNRESET'), {
+        code: 'ECONNRESET',
+      }),
+    })
+  const results = await Promise.allSettled(
+    range(12, () =>
+      s.run('page', async () => {
+        inFlight++
+        seen.push({ inFlight, failuresBefore: failures })
+        await wait(5)
+        inFlight--
+        failures++
+        throw reset()
+      }),
+    ),
+  )
+  assert.equal(s.attempts, 8)
+  assert.ok(s.down?.startsWith(SITE_DOWN))
+  assert.ok(
+    seen.filter((x) => x.failuresBefore >= 2).every((x) => x.inFlight === 1),
+  )
+  assert.ok(
+    results.some(
+      (x) => x.status === 'rejected' && x.reason instanceof SiteDownError,
+    ),
+  )
+  await assert.rejects(
+    s.run('page', async () => ({ status: 200, retryAfter: null, value: 1 })),
+    SiteDownError,
+  )
 })

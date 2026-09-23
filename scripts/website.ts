@@ -1,21 +1,25 @@
 /* A live website → design/manifest.json + design/renders/* + design/assets/* (the same files the
    Figma extractor writes). Run through extract.ts:
-     pnpm extract --from-url <url> [--max-pages 30] [--only /a,/b] [--mobile-width 390]
-     pnpm extract --from-url <url> --inspect [--json]      (HTML only, no browser, a few seconds)
+     pnpm extract --from-url <url> [--max-pages 30] [--only /a,/b] [--mobile-width 390] [--concurrency 2]
+     pnpm extract --from-url <url> --inspect [--json]      (HTML only, no browser)
    Only for the client's own site or with permission; the origin is recorded in the manifest.
    Same-origin pages only, robots.txt respected (`--ignore-robots` only for a site you own whose
    robots.txt blocks everything, e.g. a noindex preview), webfont files never downloaded.
+   Polite by construction (website-lib.ts `Scheduler`): 2 requests at a time (max 4), 300 ms
+   between request starts, 15 s timeout, one retry, Retry-After honoured, slows down after 2
+   failures in a row and gives up after 8; at most 2 × --max-pages page requests. The inventory
+   of pages comes from links and sitemaps without fetching them; only a sample is fetched.
    Everything that is not I/O lives in ./website-lib.ts. */
 import { createHash } from 'node:crypto'
 import { mkdir, writeFile } from 'node:fs/promises'
 import type { Browser, BrowserContext, Page } from 'playwright'
 import {
-  classifyUrl,
   cleanFamily,
+  classifyUrl,
   coloursInCss,
   commonTitleSuffix,
+  crawl,
   detectCollections,
-  dirOf,
   fontFacesInCss,
   fontServiceFamilies,
   htmlImages,
@@ -24,22 +28,28 @@ import {
   htmlStylesheets,
   htmlTitle,
   LOGIN_PATH,
+  MAX_CONCURRENCY,
   parseRobots,
   parseSitemap,
+  POLITE,
   robotsAllows,
   routeName,
   routeSlug,
+  Scheduler,
   segment,
+  errorText,
   snapshotDom,
   snapshotLinks,
-  withoutQuery,
 } from './website-lib.ts'
 import type {
+  Attempted,
   Collection,
   CrawledPage,
   FontSource,
-  FoundLink,
+  Group,
+  Politeness,
   Robots,
+  Skip,
   Snapshot,
   SnapNode,
   TreeNode,
@@ -47,10 +57,13 @@ import type {
 } from './website-lib.ts'
 import { dedupeRenders, dedupeRoutePaths } from './route-key.ts'
 
-const USER_AGENT =
-  'Mozilla/5.0 (compatible; Kiln/1.0; +https://github.com/kennerluoma/csnf) website recreation'
+/* Says what we are, so a webmaster who sees it in the logs can find out. */
+export const USER_AGENT =
+  'Kiln/0.1 (+https://github.com/kennerluoma/agency-platform; site recreation for the site owner)'
 const DESKTOP = { width: 1440, height: 900 }
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
+/* Instances fetched per parent path (a collection is recognised from a sample). */
+const PER_DIR_CAP = 12
 const IMAGE_EXT: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -61,8 +74,7 @@ const IMAGE_EXT: Record<string, string> = {
 }
 const log = (...a: Array<unknown>) => console.error(...a)
 
-type Skip = { url: string; why: string }
-type Options = {
+export type Options = {
   url: string
   maxPages: number
   only: Array<string> | undefined
@@ -70,6 +82,7 @@ type Options = {
   inspect: boolean
   json: boolean
   ignoreRobots: boolean
+  concurrency: number
 }
 
 export function parseArgs(argv: Array<string>): Options {
@@ -100,174 +113,81 @@ export function parseArgs(argv: Array<string>): Options {
     inspect: argv.includes('--inspect'),
     json: argv.includes('--json'),
     ignoreRobots: argv.includes('--ignore-robots'),
+    concurrency: Math.min(
+      MAX_CONCURRENCY,
+      num('--concurrency', POLITE.concurrency),
+    ),
   }
 }
 
-async function get(url: string, timeoutMs = 8000) {
-  return fetch(url, {
-    headers: { 'user-agent': USER_AGENT, accept: 'text/html,*/*;q=0.8' },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(timeoutMs),
-  })
-}
-async function text(
+/* The one place that talks HTTP (tests pass a fake). Every call goes through a Scheduler. */
+export type Get = (
   url: string,
-  timeoutMs = 8000,
+  init: { signal: AbortSignal; accept: string },
+) => Promise<Response>
+const httpGet: Get = (url, { signal, accept }) =>
+  fetch(url, {
+    headers: { 'user-agent': USER_AGENT, accept },
+    redirect: 'follow',
+    signal,
+  })
+export type Deps = { get: Get; polite: Politeness }
+const depsFor = (o: Options, deps?: Partial<Deps>): Deps => ({
+  get: deps?.get ?? httpGet,
+  polite: deps?.polite ?? { ...POLITE, concurrency: o.concurrency },
+})
+/* Page fetches may use at most twice the page budget (retries included); robots.txt, sitemaps
+   and stylesheets share a small allowance of their own. */
+const budgetFor = (max: number) => ({ page: max * 2, meta: 30 })
+
+async function fetchText(
+  s: Scheduler,
+  get: Get,
+  url: string,
 ): Promise<string | undefined> {
   try {
-    const res = await get(url, timeoutMs)
-    return res.ok ? await res.text() : undefined
+    const r = await s.run('meta', async (signal) => {
+      const res = await get(url, { signal, accept: 'text/plain,*/*;q=0.8' })
+      const value = res.ok ? await res.text() : undefined
+      if (!res.ok) await res.body?.cancel()
+      return {
+        status: res.status,
+        retryAfter: res.headers.get('retry-after'),
+        value,
+      }
+    })
+    return r.value
   } catch {
     return undefined
   }
 }
 
-// ---- robots + sitemap ----
+// ---- robots + sitemap (stage A: no page is fetched here) ----
 
-async function siteRules(origin: string, ignoreRobots: boolean) {
-  const robotsTxt = (await text(`${origin}/robots.txt`)) ?? ''
+async function siteRules(
+  origin: string,
+  ignoreRobots: boolean,
+  s: Scheduler,
+  get: Get,
+) {
+  const robotsTxt = (await fetchText(s, get, `${origin}/robots.txt`)) ?? ''
   const parsed = parseRobots(robotsTxt)
   const robots: Robots = ignoreRobots
     ? { rules: [], sitemaps: parsed.sitemaps }
     : parsed
   const sitemapUrls: Array<string> = []
   const queue = [...new Set([...parsed.sitemaps, `${origin}/sitemap.xml`])]
-  for (let i = 0; i < queue.length && i < 6; i++) {
+  for (let i = 0, fetched = 0; i < queue.length && fetched < 6; i++) {
     const sm = queue[i]
-    if (!sm || !sm.startsWith(origin)) continue
-    const xml = await text(sm)
+    if (!sm || !sm.startsWith(origin) || s.down) continue
+    fetched++
+    const xml = await fetchText(s, get, sm)
     if (!xml) continue
     const { urls, sitemaps } = parseSitemap(xml)
     sitemapUrls.push(...urls)
-    for (const s of sitemaps) if (!queue.includes(s)) queue.push(s)
+    for (const x of sitemaps) if (!queue.includes(x)) queue.push(x)
   }
   return { robots, sitemapUrls, blocksAll: !robotsAllows(parsed, '/') }
-}
-
-// ---- crawl ----
-
-type Loaded<T> =
-  | { kind: 'page'; finalUrl: string; links: Array<FoundLink>; data: T }
-  | { kind: 'skip'; why: string }
-
-/* Priority crawl: the start page, then nav/header/footer links, then in-page links, then the
-   sitemap; siblings under a parent path that already has 8 queued pages wait at the back so a blog
-   with 300 posts cannot eat the page budget before the About page is reached. */
-async function crawl<T>(o: {
-  origin: string
-  seeds: Array<string>
-  sitemap: Array<string>
-  discover: boolean
-  max: number
-  robots: Robots
-  concurrency: number
-  load: (url: string) => Promise<Loaded<T>>
-}) {
-  type Job = { url: string; tier: number; seq: number }
-  const queue: Array<Job> = []
-  const seen = new Set<string>()
-  const done = new Set<string>()
-  const skipped = new Map<string, string>()
-  const perDir = new Map<string, number>()
-  const pages: Array<{ url: string; path: string; data: T }> = []
-  let seq = 0
-  const skip = (url: string, why: string) => {
-    if (!skipped.has(url)) skipped.set(url, why)
-  }
-  const enqueue = (href: string, base: string, tier: number) => {
-    const v = classifyUrl(href, base, o.origin)
-    if (!v.ok) {
-      if (v.why === 'off-origin' || v.why === 'invalid URL') return
-      skip(v.url, v.why)
-      if (v.why === 'query variant') enqueue(withoutQuery(v.url), base, tier)
-      return
-    }
-    if (seen.has(v.url)) return
-    seen.add(v.url)
-    if (!robotsAllows(o.robots, v.path)) {
-      skip(v.url, 'robots.txt disallows')
-      return
-    }
-    const dir = dirOf(v.path)
-    const n = (perDir.get(dir) ?? 0) + 1
-    perDir.set(dir, n)
-    queue.push({
-      url: v.url,
-      tier: dir !== '/' && n > 8 ? Math.max(tier, 4) : tier,
-      seq: seq++,
-    })
-  }
-  for (const s of o.seeds) enqueue(s, o.origin, 0)
-  if (o.discover) for (const s of o.sitemap) enqueue(s, o.origin, 3)
-  const pop = () => {
-    let best = 0
-    queue.forEach((j, i) => {
-      const b = queue[best]
-      if (b && (j.tier < b.tier || (j.tier === b.tier && j.seq < b.seq)))
-        best = i
-    })
-    return queue.splice(best, 1)[0]
-  }
-  const run = async (job: Job) => {
-    let res: Loaded<T>
-    try {
-      res = await o.load(job.url)
-    } catch (e) {
-      skip(
-        job.url,
-        `error: ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`,
-      )
-      return
-    }
-    if (res.kind === 'skip') {
-      skip(job.url, res.why)
-      return
-    }
-    const final = classifyUrl(res.finalUrl, job.url, o.origin)
-    if (!final.ok) {
-      skip(
-        job.url,
-        final.why === 'off-origin'
-          ? 'redirects off-origin'
-          : `redirects to ${final.why}`,
-      )
-      return
-    }
-    if (done.has(final.url)) {
-      if (final.url !== job.url) skip(job.url, `redirects to ${final.path}`)
-      return
-    }
-    if (pages.length >= o.max) return
-    done.add(final.url)
-    seen.add(final.url)
-    pages.push({ url: final.url, path: final.path, data: res.data })
-    if (o.discover)
-      for (const l of res.links)
-        enqueue(l.href, final.url, l.zone === 'nav' ? 1 : 2)
-  }
-  const running = new Set<Promise<void>>()
-  for (;;) {
-    while (
-      running.size < o.concurrency &&
-      queue.length &&
-      pages.length + running.size < o.max
-    ) {
-      const job = pop()
-      if (!job) break
-      const p: Promise<void> = run(job).finally(() => running.delete(p))
-      running.add(p)
-    }
-    if (!running.size) break
-    await Promise.race(running)
-  }
-  for (const j of queue) skip(j.url, `over --max-pages ${o.max}`)
-  pages.sort((a, b) =>
-    a.path === '/' ? -1 : b.path === '/' ? 1 : a.path.localeCompare(b.path),
-  )
-  return {
-    pages,
-    skipped: [...skipped.entries()].map(([url, why]) => ({ url, why })),
-  }
 }
 
 function responseSkip(
@@ -294,70 +214,106 @@ type InspectPage = {
   fontLinks: Array<string>
 }
 
-export async function inspect(o: Options) {
+export type InspectResult = {
+  url: string
+  pages: Array<{ path: string; title: string; images: Array<string> }>
+  fonts: Array<FontSource>
+  colours: Array<{ hex: string; uses: number }>
+  skipped: Array<Skip>
+  /** Same-origin pages known from links + sitemaps (most of them never fetched). */
+  found: number
+  /** Pages grouped by first path segment; `sampled` = how many of them are in `pages`. */
+  groups: Array<Group>
+  notFetched: number
+  /** Requests made to the site (pages, retries, robots.txt, sitemaps, stylesheets). */
+  requests: number
+  /** Set when the site stopped responding and the inspect gave up. */
+  aborted?: string
+}
+
+export async function inspectSite(
+  o: Options,
+  deps?: Partial<Deps>,
+): Promise<InspectResult> {
+  const { get, polite } = depsFor(o, deps)
   const origin = new URL(o.url).origin
+  const max = o.only ? o.only.length : o.maxPages
+  const s = new Scheduler(polite, budgetFor(max))
   const { robots, sitemapUrls, blocksAll } = await siteRules(
     origin,
     o.ignoreRobots,
+    s,
+    get,
   )
-  const { pages, skipped } = await crawl<InspectPage>({
+  const crawled = await crawl<InspectPage>({
     origin,
     seeds: o.only ? o.only.map((p) => origin + p) : [o.url],
     sitemap: sitemapUrls,
     discover: !o.only,
-    max: o.only ? o.only.length : o.maxPages,
+    max,
     robots,
-    concurrency: 8,
-    load: async (url) => {
-      const res = await get(url, 6000)
+    scheduler: s,
+    load: async (url, signal) => {
+      const res = await get(url, {
+        signal,
+        accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5',
+      })
+      const finalUrl = res.url || url
+      const status = res.status
+      const retryAfter = res.headers.get('retry-after')
       const why = responseSkip(
-        res.status,
-        res.url,
+        status,
+        finalUrl,
         res.headers.get('content-type') ?? '',
       )
       if (why) {
         await res.body?.cancel()
-        return { kind: 'skip', why }
+        return { status, retryAfter, value: { kind: 'skip', why } }
       }
       const html = await res.text()
-      const css = htmlStylesheets(html, res.url)
+      const css = htmlStylesheets(html, finalUrl)
       return {
-        kind: 'page',
-        finalUrl: res.url,
-        links: htmlLinks(html),
-        data: {
-          path: new URL(res.url).pathname,
-          title: htmlTitle(html),
-          images: htmlImages(html, res.url).slice(0, 4),
-          css: css.filter((c) => c.startsWith(origin)),
-          inline: htmlInlineStyles(html),
-          fontLinks: css.filter((c) => fontServiceFamilies(c).length),
+        status,
+        retryAfter,
+        value: {
+          kind: 'page',
+          finalUrl,
+          links: htmlLinks(html),
+          data: {
+            path: new URL(finalUrl).pathname,
+            title: htmlTitle(html),
+            images: htmlImages(html, finalUrl).slice(0, 4),
+            css: css.filter((c) => c.startsWith(origin)),
+            inline: htmlInlineStyles(html),
+            fontLinks: css.filter((c) => fontServiceFamilies(c).length),
+          },
         },
       }
     },
   })
+  const { pages } = crawled
   // Fonts and colours: the site's own stylesheets (first few) + inline <style>, never font files.
   const cssUrls = [...new Set(pages.flatMap((p) => p.data.css))].slice(0, 6)
-  const sheets = await Promise.all(
-    cssUrls.map(async (u) => ({ u, css: (await text(u, 5000)) ?? '' })),
-  )
+  const sheets: Array<{ u: string; css: string }> = []
+  for (const u of cssUrls)
+    if (!s.down) sheets.push({ u, css: (await fetchText(s, get, u)) ?? '' })
   const inline = [...new Set(pages.flatMap((p) => p.data.inline))]
   const fonts = dedupeFonts([
     ...[...new Set(pages.flatMap((p) => p.data.fontLinks))].flatMap(
       fontServiceFamilies,
     ),
-    ...sheets.flatMap((s) => fontFacesInCss(s.css, s.u)),
+    ...sheets.flatMap((x) => fontFacesInCss(x.css, x.u)),
     ...inline.flatMap((css) => fontFacesInCss(css, origin)),
   ])
   const colourCounts = new Map<string, number>()
-  for (const css of [...sheets.map((s) => s.css), ...inline])
+  for (const css of [...sheets.map((x) => x.css), ...inline])
     for (const c of coloursInCss(css))
       colourCounts.set(c.hex, (colourCounts.get(c.hex) ?? 0) + c.uses)
   const colours = [...colourCounts.entries()]
     .map(([hex, uses]) => ({ hex, uses }))
     .sort((a, b) => b.uses - a.uses)
     .slice(0, 16)
-  const result = {
+  return {
     url: o.url,
     pages: pages.map((p) => ({
       path: p.path,
@@ -373,25 +329,51 @@ export async function inspect(o: Options) {
               url: `${origin}/robots.txt`,
               why: 'robots.txt disallows every page (pass --ignore-robots only for a site you own)',
             },
-            ...skipped,
+            ...crawled.skipped,
           ]
-        : skipped,
+        : crawled.skipped,
+    found: crawled.found,
+    groups: crawled.groups,
+    notFetched: crawled.notFetched,
+    requests: s.attempts,
+    ...(s.down && { aborted: s.down }),
   }
+}
+
+export async function inspect(o: Options) {
+  const t0 = Date.now()
+  const result = await inspectSite(o)
+  const secs = ((Date.now() - t0) / 1000).toFixed(1)
+  if (result.aborted) {
+    // stdout, so the app's error shows it; the partial result is not a page list to pick from.
+    console.log(result.aborted)
+    log(
+      `${result.pages.length} page(s) read before it stopped; ${result.requests} request(s) in ${secs} s`,
+    )
+    process.exit(1)
+  }
+  log(
+    `inspected in ${secs} s: ${result.requests} request(s), ${result.pages.length} page(s) read of ${result.found} found`,
+  )
   if (o.json) {
     process.stdout.write(JSON.stringify(result) + '\n')
     return
   }
-  console.log(`${o.url}: ${result.pages.length} page(s)`)
+  console.log(
+    `${o.url}: found ${result.found} page(s) in ${result.groups.length} group(s); read ${result.pages.length}, ${result.notFetched} not fetched`,
+  )
+  for (const g of result.groups)
+    console.log(`  ${g.prefix}  ${g.count} (${g.sampled} read)`)
   for (const p of result.pages)
     console.log(`  ${p.path}  ${p.title}  (${p.images.length} image(s))`)
   console.log(
-    `fonts: ${fonts.map((f) => `${f.family} [${f.source}]`).join(', ') || 'none found'}`,
+    `fonts: ${result.fonts.map((f) => `${f.family} [${f.source}]`).join(', ') || 'none found'}`,
   )
-  console.log(`colours: ${colours.map((c) => c.hex).join(' ')}`)
+  console.log(`colours: ${result.colours.map((c) => c.hex).join(' ')}`)
   if (result.skipped.length) {
     console.log(`skipped ${result.skipped.length}:`)
-    for (const s of result.skipped.slice(0, 40))
-      console.log(`  ${s.url}  (${s.why})`)
+    for (const x of result.skipped.slice(0, 40))
+      console.log(`  ${x.url}  (${x.why})`)
   }
 }
 
@@ -459,37 +441,68 @@ type LintNote = {
 }
 type Captured = { snap: Snapshot; shot: Buffer }
 
+/* One browser navigation. The page stays open for the caller (settle, snapshot, screenshot),
+   which closes it; `status`/`retryAfter` feed the scheduler's health check. */
 async function visit(
   ctx: BrowserContext,
   url: string,
-): Promise<{ page: Page; skip?: string }> {
+  timeoutMs: number,
+): Promise<{
+  page: Page
+  status: number
+  retryAfter: string | null
+  skip?: string
+}> {
   const page = await ctx.newPage()
-  const res = await page.goto(url, {
-    waitUntil: 'domcontentloaded',
-    timeout: 30_000,
-  })
-  if (!res) return { page, skip: 'no response' }
-  const why = responseSkip(
-    res.status(),
-    page.url(),
-    res.headers()['content-type'] ?? '',
-  )
-  return why ? { page, skip: why } : { page }
+  try {
+    const res = await page.goto(url, {
+      waitUntil: 'domcontentloaded',
+      timeout: timeoutMs,
+    })
+    if (!res) return { page, status: 0, retryAfter: null, skip: 'no response' }
+    const headers = res.headers()
+    const why = responseSkip(
+      res.status(),
+      page.url(),
+      headers['content-type'] ?? '',
+    )
+    return {
+      page,
+      status: res.status(),
+      retryAfter: headers['retry-after'] ?? null,
+      ...(why && { skip: why }),
+    }
+  } catch (e) {
+    await page.close()
+    throw e
+  }
 }
 
+type Downloaded = { file: string; bytes: number } | { skip: string }
 async function download(
   src: string,
-): Promise<{ file: string; bytes: number } | { skip: string }> {
+  signal: AbortSignal,
+): Promise<Attempted<Downloaded>> {
+  const done = (
+    value: Downloaded,
+    status = 200,
+    retryAfter: string | null = null,
+  ) => ({
+    status,
+    retryAfter,
+    value,
+  })
   let bytes: Buffer
   let type = ''
   if (src.startsWith('data:')) {
     const m = /^data:([^;,]+)(;base64)?,(.*)$/s.exec(src)
-    if (!m) return { skip: 'unreadable data: URI' }
+    if (!m) return done({ skip: 'unreadable data: URI' })
     type = m[1] ?? ''
     bytes = m[2]
       ? Buffer.from(m[3] ?? '', 'base64')
       : Buffer.from(decodeURIComponent(m[3] ?? ''))
-    if (bytes.length < 2048) return { skip: 'placeholder (tiny data: URI)' }
+    if (bytes.length < 2048)
+      return done({ skip: 'placeholder (tiny data: URI)' })
   } else {
     const res = await fetch(src, {
       // Ask for modern formats: image CDNs (Sanity, Imgix, Cloudinary) then send WebP (Sanity takes it; AVIF it may not).
@@ -497,28 +510,31 @@ async function download(
         'user-agent': USER_AGENT,
         accept: 'image/webp,image/*;q=0.8',
       },
-      signal: AbortSignal.timeout(20_000),
+      signal,
     })
-    if (!res.ok || !res.body) return { skip: `HTTP ${res.status}` }
+    const status = res.status
+    const retryAfter = res.headers.get('retry-after')
+    const skip = async (why: string) => {
+      await res.body?.cancel()
+      return { status, retryAfter, value: { skip: why } }
+    }
+    if (!res.ok || !res.body) return skip(`HTTP ${status}`)
     type = res.headers.get('content-type') ?? ''
-    if (!type.startsWith('image/')) {
-      await res.body.cancel()
-      return { skip: `not an image (${type || 'no type'})` }
-    }
-    if (Number(res.headers.get('content-length') ?? 0) > MAX_IMAGE_BYTES) {
-      await res.body.cancel()
-      return { skip: 'over 10 MB' }
-    }
+    if (!type.startsWith('image/'))
+      return skip(`not an image (${type || 'no type'})`)
+    if (Number(res.headers.get('content-length') ?? 0) > MAX_IMAGE_BYTES)
+      return skip('over 10 MB')
     const chunks: Array<Uint8Array> = []
     let size = 0
     const reader = res.body.getReader()
     for (;;) {
-      const { done, value } = await reader.read()
-      if (done) break
+      const chunk = await reader.read()
+      if (chunk.done) break
+      const value = chunk.value
       size += value.byteLength
       if (size > MAX_IMAGE_BYTES) {
         await reader.cancel()
-        return { skip: 'over 10 MB' }
+        return done({ skip: 'over 10 MB' }, status)
       }
       chunks.push(value)
     }
@@ -527,7 +543,7 @@ async function download(
   const ext = IMAGE_EXT[type.split(';')[0]?.trim() ?? ''] ?? 'img'
   const file = `design/assets/${createHash('sha256').update(bytes).digest('hex').slice(0, 16)}.${ext}`
   await writeFile(file, bytes)
-  return { file, bytes: bytes.length }
+  return done({ file, bytes: bytes.length })
 }
 
 async function pool<T, R>(
@@ -622,9 +638,20 @@ export async function extractWebsite(o: Options) {
   const origin = new URL(o.url).origin
   const crawledAt = new Date().toISOString()
   const lint: Array<LintNote> = []
+  const { get, polite } = depsFor(o)
+  const max = o.only ? o.only.length : o.maxPages
+  const s = new Scheduler(polite, budgetFor(max))
+  const stopIfDown = (stage: string) => {
+    if (s.down)
+      throw new Error(
+        `${s.down} [${stage}; ${s.attempts} request(s) to ${origin}]`,
+      )
+  }
   const { robots, sitemapUrls, blocksAll } = await siteRules(
     origin,
     o.ignoreRobots,
+    s,
+    get,
   )
   const { chromium } = await import('playwright')
   const browser: Browser = await chromium.launch()
@@ -633,36 +660,50 @@ export async function extractWebsite(o: Options) {
       viewport: DESKTOP,
       serviceWorkers: 'block',
     })
-    log(
-      `crawling ${origin} (max ${o.only ? o.only.length : o.maxPages} page(s))…`,
-    )
-    const { pages, skipped } = await crawl<Captured>({
+    log(`crawling ${origin} (max ${max} page(s), ${s.concurrency} at a time)…`)
+    const crawled = await crawl<Captured>({
       origin,
       seeds: o.only ? o.only.map((p) => origin + p) : [o.url],
       sitemap: sitemapUrls,
       discover: !o.only,
-      max: o.only ? o.only.length : o.maxPages,
+      max,
       robots,
-      concurrency: 3,
-      load: async (url) => {
-        const { page, skip } = await visit(desktop, url)
+      scheduler: s,
+      ...(!o.only && { perDirCap: PER_DIR_CAP }),
+      load: async (url, _signal, timeoutMs) => {
+        const { page, status, retryAfter, skip } = await visit(
+          desktop,
+          url,
+          timeoutMs,
+        )
         try {
-          if (skip) return { kind: 'skip', why: skip }
+          if (skip)
+            return { status, retryAfter, value: { kind: 'skip', why: skip } }
           await settle(page)
           const snap = await page.evaluate(snapshotDom)
           const shot = await shoot(page, lint, new URL(page.url()).pathname)
           log(`  ${new URL(page.url()).pathname}`)
           return {
-            kind: 'page',
-            finalUrl: page.url(),
-            links: snapshotLinks(snap.root),
-            data: { snap, shot },
+            status,
+            retryAfter,
+            value: {
+              kind: 'page',
+              finalUrl: page.url(),
+              links: snapshotLinks(snap.root),
+              data: { snap, shot },
+            },
           }
         } finally {
           await page.close()
         }
       },
     })
+    const { pages, skipped } = crawled
+    const pageAttempts = s.used.get('page') ?? 0
+    log(
+      `found ${crawled.found} page(s) in ${crawled.groups.length} group(s); captured ${pages.length}, ${crawled.notFetched} not fetched, ${pageAttempts} page request(s)`,
+    )
+    stopIfDown('crawl')
     if (!pages.length) {
       const why =
         blocksAll && !o.ignoreRobots
@@ -680,7 +721,7 @@ export async function extractWebsite(o: Options) {
       ...p,
       seg: segment(p.data.snap, routeSlug(p.path)),
     }))
-    const crawled: Array<CrawledPage> = segmented.map((p) => ({
+    const crawledPages: Array<CrawledPage> = segmented.map((p) => ({
       path: p.path,
       title: p.data.snap.title,
       sections: p.seg.sections,
@@ -692,9 +733,10 @@ export async function extractWebsite(o: Options) {
         .flatMap((v) => (v.ok ? [v.path] : [])),
     }))
     const { collections, members } = detectCollections(
-      crawled,
+      crawledPages,
       origin,
       siteSuffix,
+      crawled.inventory,
     )
     const routePages = segmented.filter((p) => !members.has(p.path))
     const samples = new Map<string, (typeof segmented)[number]>()
@@ -718,18 +760,31 @@ export async function extractWebsite(o: Options) {
     log(`downloading ${srcs.length} image(s)…`)
     const files = new Map<string, { file: string; bytes: number }>()
     const imageSkips: Array<Skip> = []
+    // Images on the crawled origin go through the scheduler (they load the same server); image
+    // CDNs and other hosts are fetched 6 at a time.
+    const sameOrigin = (src: string) => {
+      try {
+        return new URL(src).origin === origin
+      } catch {
+        return false
+      }
+    }
+    s.setBudget('asset', srcs.filter(sameOrigin).length * 2)
     await pool(srcs, 6, async (src) => {
       try {
-        const r = await download(src)
+        const r = sameOrigin(src)
+          ? (await s.run('asset', (signal) => download(src, signal))).value
+          : (await download(src, AbortSignal.timeout(20_000))).value
         if ('file' in r) files.set(src, r)
         else imageSkips.push({ url: src.slice(0, 200), why: r.skip })
       } catch (e) {
         imageSkips.push({
           url: src.slice(0, 200),
-          why: e instanceof Error ? e.message : String(e),
+          why: errorText(e, 20_000),
         })
       }
     })
+    stopIfDown('images')
     const fileOf = (src: string) => files.get(src)?.file
     const withFiles = (s: WebSection): WebSection => ({
       ...s,
@@ -767,27 +822,39 @@ export async function extractWebsite(o: Options) {
       `mobile renders (${o.mobileWidth}px) for ${mobileTargets.length} page(s)…`,
     )
     const mobileShots = new Map<string, { shot: Buffer; snap: Snapshot }>()
-    await pool(mobileTargets, 3, async (p) => {
-      const { page, skip } = await visit(mobile, p.url)
+    s.setBudget('mobile', mobileTargets.length * 2)
+    await pool(mobileTargets, MAX_CONCURRENCY, async (p) => {
       try {
-        if (skip) return
-        await settle(page)
-        const snap = await page.evaluate(snapshotDom)
-        mobileShots.set(p.path, {
-          snap,
-          shot: await shoot(page, lint, `${p.path}@mobile`),
+        await s.run('mobile', async (_signal, timeoutMs) => {
+          const { page, status, retryAfter, skip } = await visit(
+            mobile,
+            p.url,
+            timeoutMs,
+          )
+          try {
+            if (!skip) {
+              await settle(page)
+              const snap = await page.evaluate(snapshotDom)
+              mobileShots.set(p.path, {
+                snap,
+                shot: await shoot(page, lint, `${p.path}@mobile`),
+              })
+            }
+            return { status, retryAfter, value: skip }
+          } finally {
+            await page.close()
+          }
         })
       } catch (e) {
         lint.push({
           level: 'warn',
           node: p.path,
           name: p.path,
-          msg: `mobile render failed: ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`,
+          msg: `mobile render failed: ${errorText(e, s.p.timeoutMs)}`,
         })
-      } finally {
-        await page.close()
       }
     })
+    stopIfDown('mobile renders')
 
     // Routes: desktop + mobile pairs sharing a path (pages.ts and dedupeRoutePaths expect that).
     const routes: Array<
@@ -974,6 +1041,12 @@ export async function extractWebsite(o: Options) {
         url: o.url,
         crawledAt,
         pages: pages.length,
+        found: crawled.found,
+        fetched: pages.length,
+        notFetched: crawled.notFetched,
+        attempts: pageAttempts,
+        requests: Object.fromEntries(s.used),
+        groups: crawled.groups,
         skipped: [
           ...skipped,
           ...(o.ignoreRobots && blocksAll
