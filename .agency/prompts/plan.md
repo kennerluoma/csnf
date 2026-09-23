@@ -9,6 +9,7 @@ design/plan.md contains:
    - Reuse an inventory block whenever its fields fit, adding an optional field or a variant option if that is all that's missing. Say which field/option.
    - Sections that list works, artists, exhibitions, events or news map to the index blocks (`artworkGrid`, `artistList`, `exhibitionList`, `eventCalendar`, `postList`) with options (`mode`, `limit`, `featuredOnly`, `view`), never to `cardGrid` copies of the sample items.
    - Sections with inputs map to `contactForm` or `newsletterSignup`.
+   - A website import (`manifest.source.kind == "website"`) also has `collections`: plan each as a content type (existing one where it fits: `work` → `artwork`, `news` → `post`) with its list route block and a detail route styled from its `sample`; its instances are real content, not routes.
    - Only propose a new block when no inventory block fits structurally (different children or layout direction). Name it, list its fields (from the section's named text/image layers; repeated child instances become an array), and which primitives it composes.
    - In normalised fidelity (agency.json), two sections that differ only in snapped values, text or child count are the same block.
    - Routes with `kind: screen` are app-like layouts, not stacked pages: plan them as one route component each (which primitives, which content types feed it, which `regions` map to which part), and list what each `state` changes (hover, selection, open menu). Never plan a block per screen state.

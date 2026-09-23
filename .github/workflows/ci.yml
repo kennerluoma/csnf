@@ -33,6 +33,8 @@ jobs:
           pnpm build
       # "Instant" is checked: JS size, and clicks that make no document or server-function request.
       - run: pnpm exec playwright install chromium --with-deps
+      # Script unit tests (node:test); the website importer's segmentation tests lay pages out in Chromium.
+      - run: pnpm test
       - run: pnpm budget
       # The built pages next to the design renders. Words, not gates: this step cannot fail the
       # build, and a .fig import (no renders) simply reports "no reference" everywhere.

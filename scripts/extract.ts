@@ -51,17 +51,32 @@ type FigmaNode = {
   componentId?: string
 }
 
-// --normalise <manifest.json>: re-run only the normaliser on an existing manifest (e.g. one exported
-// by the Figma plugin, which never talks to the REST API). No token needed in that mode.
-const normaliseOnly = process.argv.includes('--normalise')
-  ? process.argv[process.argv.indexOf('--normalise') + 1]
-  : undefined
 // --from-fig <file.fig> [--page <name>]: read a local .fig export (no API, no quota). Frames on the
 // chosen page (default: a page named FINAL/Final, else every page) are routes; repeated frame names
 // fold into one route with `states`. No renders: export frames as PNG into design/renders/ by hand.
 const argAfter = (flag: string) =>
   process.argv.includes(flag)
     ? process.argv[process.argv.indexOf(flag) + 1]
+    : undefined
+// --from-url <url>: recreate a live website (./website.ts writes the manifest, renders and assets),
+// then the normaliser below runs on that manifest exactly as it does on a plugin export.
+// `--inspect [--json]` only lists pages, fonts and colours (HTML fetches, no browser) and exits.
+const fromUrl = process.argv.includes('--from-url')
+if (fromUrl) {
+  const site = await import('./website.ts')
+  const options = site.parseArgs(process.argv)
+  if (options.inspect) {
+    await site.inspect(options)
+    process.exit(0)
+  }
+  await site.extractWebsite(options)
+}
+// --normalise <manifest.json>: re-run only the normaliser on an existing manifest (e.g. one exported
+// by the Figma plugin, which never talks to the REST API). No token needed in that mode.
+const normaliseOnly = fromUrl
+  ? 'design/manifest.json'
+  : process.argv.includes('--normalise')
+    ? process.argv[process.argv.indexOf('--normalise') + 1]
     : undefined
 const fromFig = argAfter('--from-fig')
 // --from-bundle <figma-export.json>: what the Agency Figma plugin saves. The plugin only dumps the
