@@ -31,3 +31,4 @@ design/agent-stderr.log
 .agency/triage.json
 .agency/drafts.json
 .agency/intake.md
+.agency/import/

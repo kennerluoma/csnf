@@ -1,4 +1,5 @@
 import { defineField, defineType } from '@sanity/types'
+import { rich } from '../../sanity/img'
 
 export const contactFormSchema = defineType({
   name: 'contactForm',
@@ -38,4 +39,4 @@ export const contactFormSchema = defineType({
   },
 })
 
-export const contactFormProjection = /* groq */ `_type == "contactForm" => { eyebrow, heading, intro, showSubject, buttonLabel, successMessage, aside }`
+export const contactFormProjection = /* groq */ `_type == "contactForm" => { eyebrow, heading, intro, showSubject, buttonLabel, successMessage, ${rich('aside')} }`
