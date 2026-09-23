@@ -1,7 +1,7 @@
 import { blockProjections } from '#/blocks/schemas'
-import { img } from './img'
+import { img, rich } from './img'
 
-export { img }
+export { img, rich }
 
 const blocks = `blocks[]{ _key, _type, ${blockProjections} }`
 const seo = `seo{ title, description, ${img('image')}, noIndex }`
@@ -39,13 +39,13 @@ export const artworkFiltersQuery = /* groq */ `{
   "tags": array::unique(*[_type == "artwork" && defined(tags)].tags[]) | order(@ asc)
 }`
 export const artworkBySlugQuery = /* groq */ `*[_type == "artwork" && slug.current == $slug][0]{
-  ${artworkCard}, caption, dimensions, ${img('images[]', 'images')}, description,
+  ${artworkCard}, caption, dimensions, ${img('images[]', 'images')}, ${rich('description')},
   exhibitions[]->{ _id, title, "slug": slug.current }, ${seo}
 }`
 
 export const artistsQuery = /* groq */ `*[_type == "artist"] | order(name asc){ _id, name, "slug": slug.current, ${img('portrait')} }`
 export const artistBySlugQuery = /* groq */ `*[_type == "artist" && slug.current == $slug][0]{
-  _id, name, "slug": slug.current, ${img('portrait')}, bio, links[]{label, href}, ${seo},
+  _id, name, "slug": slug.current, ${img('portrait')}, ${rich('bio')}, links[]{label, href}, ${seo},
   "artworks": *[_type == "artwork" && artist._ref == ^._id] | order(year desc){ ${artworkCard} }
 }`
 
@@ -56,7 +56,7 @@ export const exhibitionsQuery = /* groq */ `{
   "past": *[_type == "exhibition" && defined(end) && end < $today] | order(start desc)[0...$limit]{ ${exhibitionCard} }
 }`
 export const exhibitionBySlugQuery = /* groq */ `*[_type == "exhibition" && slug.current == $slug][0]{
-  ${exhibitionCard}, body, ${img('images[]', 'images')}, pressLinks[]{label, href},
+  ${exhibitionCard}, ${rich('body')}, ${img('images[]', 'images')}, pressLinks[]{label, href},
   "pressRelease": select(defined(pressRelease.asset) => { "url": pressRelease.asset->url, "label": pressReleaseLabel }), ${seo},
   "artworks": artworks[]->{ ${artworkCard} }
 }`
@@ -69,10 +69,10 @@ export const upcomingEventsQuery = /* groq */ `*[_type == "event" && (start >= $
   && ($series == "" || series->slug.current == $series)
 ] | order(start asc)[0...$limit]{ ${eventCard} }`
 export const eventSeriesQuery = /* groq */ `*[_type == "eventSeries"] | order(title asc){ _id, title, "slug": slug.current }`
-export const eventBySlugQuery = /* groq */ `*[_type == "event" && slug.current == $slug][0]{ ${eventCard}, ticketUrl, body, ${seo} }`
+export const eventBySlugQuery = /* groq */ `*[_type == "event" && slug.current == $slug][0]{ ${eventCard}, ticketUrl, ${rich('body')}, ${seo} }`
 
 export const postsQuery = /* groq */ `*[_type == "post" && ($tagFilter == "" || $tagFilter in tags)] | order(date desc)[0...$limit]{ ${postCard} }`
-export const postBySlugQuery = /* groq */ `*[_type == "post" && slug.current == $slug][0]{ ${postCard}, body, ${seo} }`
+export const postBySlugQuery = /* groq */ `*[_type == "post" && slug.current == $slug][0]{ ${postCard}, ${rich('body')}, ${seo} }`
 
 /* Every public URL, for the sitemap. */
 export const sitemapQuery = /* groq */ `{

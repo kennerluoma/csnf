@@ -125,7 +125,7 @@ export type Get = (
   url: string,
   init: { signal: AbortSignal; accept: string },
 ) => Promise<Response>
-const httpGet: Get = (url, { signal, accept }) =>
+export const httpGet: Get = (url, { signal, accept }) =>
   fetch(url, {
     headers: { 'user-agent': USER_AGENT, accept },
     redirect: 'follow',
@@ -164,7 +164,7 @@ async function fetchText(
 
 // ---- robots + sitemap (stage A: no page is fetched here) ----
 
-async function siteRules(
+export async function siteRules(
   origin: string,
   ignoreRobots: boolean,
   s: Scheduler,
@@ -190,7 +190,7 @@ async function siteRules(
   return { robots, sitemapUrls, blocksAll: !robotsAllows(parsed, '/') }
 }
 
-function responseSkip(
+export function responseSkip(
   status: number,
   finalUrl: string,
   contentType: string,

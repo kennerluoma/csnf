@@ -6,3 +6,6 @@ import type { SanityImage } from './types'
    Server code that needs the client imports it from './client' directly. */
 const builder = imageUrlBuilder({ projectId, dataset })
 export const urlFor = (source: SanityImage) => builder.image(source)
+/* A bare asset reference (an image block inside rich text, projected raw). */
+export const urlForAsset = (source: { asset: { _ref: string } }) =>
+  builder.image(source)

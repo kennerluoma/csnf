@@ -9,13 +9,14 @@ import {
   submission,
   venue,
 } from './documents'
-import { imageWithAlt, link, richText, seo } from './objects'
+import { embed, imageWithAlt, link, richText, seo } from './objects'
 import { page } from './page'
 import { siteSettings } from './siteSettings'
 
 export const schemaTypes = [
   link,
   imageWithAlt,
+  embed,
   richText,
   seo,
   page,

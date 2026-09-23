@@ -4,7 +4,7 @@ import type { ComponentPropsWithoutRef, ElementType, ReactNode } from 'react'
 import { Link as RouterLink, defaultParseSearch } from '@tanstack/react-router'
 import { PortableText } from '@portabletext/react'
 import { cn } from '#/lib/cn'
-import { urlFor } from '#/sanity/image'
+import { urlFor, urlForAsset } from '#/sanity/image'
 import type { RichTextValue, SanityImage } from '#/sanity/types'
 
 /* Internal paths navigate client-side (router Link, preloaded on hover); everything else is a
@@ -338,9 +338,41 @@ export function RichText({
   if (!value?.length) return null
   return (
     <div className={cn('prose prose-neutral max-w-none text-body', className)}>
-      <PortableText value={value} />
+      <PortableText value={value} components={richTextComponents} />
     </div>
   )
+}
+
+/* Images and embeds inside rich text (content imports write both). An image whose asset is not
+   uploaded yet renders nothing; an embed is a plain link, never an iframe of someone else's page. */
+const richTextComponents = {
+  types: {
+    imageWithAlt: ({
+      value,
+    }: {
+      value: { asset?: { _ref: string } | null; alt?: string | null }
+    }) =>
+      value.asset ? (
+        <img
+          src={urlForAsset({ asset: value.asset })
+            .width(1600)
+            .fit('max')
+            .auto('format')
+            .url()}
+          alt={value.alt ?? ''}
+          loading="lazy"
+          className="h-auto w-full"
+        />
+      ) : null,
+    embed: ({ value }: { value: { url?: string | null } }) =>
+      value.url && /^https?:\/\//.test(value.url) ? (
+        <p>
+          <A href={value.url}>
+            {value.url.replace(/^https?:\/\/(www\.)?/, '')}
+          </A>
+        </p>
+      ) : null,
+  },
 }
 
 /* ---- Template v2 primitives: cards, filters, calendar, forms. One card + one list layout per
