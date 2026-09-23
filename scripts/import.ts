@@ -21,7 +21,13 @@
    fetched items and the ids already written; --resume continues from it. Everything that is not
    I/O lives in ./import-lib.ts. */
 import { execFileSync } from 'node:child_process'
-import { createReadStream, existsSync, readFileSync, rmSync } from 'node:fs'
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs'
 import { appendFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, extname, resolve } from 'node:path'
 import { createInterface } from 'node:readline'
@@ -154,6 +160,8 @@ type State = {
   failedImages: Record<string, string>
   redirects?: number
   complete: boolean
+  /** Started with --confirm: a --resume of it needs no second confirmation. */
+  confirmed?: boolean
 }
 
 function readState(path: string): State | undefined {
@@ -207,6 +215,7 @@ function readState(path: string): State | undefined {
     failedImages: strs(r.failedImages),
     ...(typeof r.redirects === 'number' && { redirects: r.redirects }),
     complete: r.complete === true,
+    ...(r.confirmed === true && { confirmed: true }),
   }
 }
 
@@ -463,37 +472,54 @@ function loadSchema(): Array<TargetType> {
       process.env.VITE_SANITY_DATASET ??
       'production',
   }
-  try {
-    // `schema extract` refuses to overwrite its output.
-    rmSync(out, { force: true })
-    execFileSync(
-      'pnpm',
-      [
-        '--filter',
-        'admin',
-        'exec',
-        'sanity',
-        'schema',
-        'extract',
-        '--path',
-        `../${out}`,
-      ],
-      {
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env,
-        timeout: 180_000,
-      },
-    )
-  } catch (e) {
-    const cached = 'node_modules/.cache/typegen/schema.json'
-    if (!existsSync(cached))
-      throw new Error(
-        `could not read the schema (sanity schema extract): ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`,
+  // The admin app's workspace package: admin/ (studio/ in projects made before the rename).
+  // `pnpm --filter` with no match exits 0 and does nothing, so it is looked up, not assumed.
+  const pkgDir = ['admin', 'studio'].find((d) =>
+    existsSync(`${d}/package.json`),
+  )
+  const pkgName = pkgDir
+    ? str(rec(JSON.parse(readFileSync(`${pkgDir}/package.json`, 'utf8'))).name)
+    : undefined
+  let why = 'no admin/ or studio/ package'
+  if (pkgName)
+    try {
+      // `schema extract` refuses to overwrite its output, and older CLIs do not create folders.
+      rmSync(out, { force: true })
+      mkdirSync(dirname(out), { recursive: true })
+      execFileSync(
+        'pnpm',
+        [
+          '--filter',
+          pkgName,
+          'exec',
+          'sanity',
+          'schema',
+          'extract',
+          '--path',
+          `../${out}`,
+        ],
+        {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          env,
+          timeout: 180_000,
+        },
       )
-    log(`schema extract failed; using ${cached} from the last pnpm typegen`)
-    return targetTypes(JSON.parse(readFileSync(cached, 'utf8')))
-  }
-  return targetTypes(JSON.parse(readFileSync(out, 'utf8')))
+      if (existsSync(out))
+        return targetTypes(JSON.parse(readFileSync(out, 'utf8')))
+      why = 'it wrote no file'
+    } catch (e) {
+      why =
+        e instanceof Error ? (e.message.split('\n')[0] ?? e.name) : String(e)
+    }
+  const cached = 'node_modules/.cache/typegen/schema.json'
+  if (!existsSync(cached))
+    throw new Error(
+      `could not read the schema (sanity schema extract: ${why}); run pnpm typegen once, or build the project from the current template`,
+    )
+  log(
+    `schema extract failed (${why}); using ${cached} from the last pnpm typegen`,
+  )
+  return targetTypes(JSON.parse(readFileSync(cached, 'utf8')))
 }
 
 function manifestCollections(): Array<{ name: string; listRoute: string }> {
@@ -575,6 +601,7 @@ export async function runImport(o: Options, deps: { get?: Get } = {}) {
         complete: false,
       }
   if (!sameSource) await store.reset()
+  if (o.confirm) state.confirmed = true
   say(
     `source: ${source.label}${source.api ? ` (REST API ${source.api})` : ''}${source.url ? ` at ${source.url}` : ''}${source.file ? ` ${source.file}` : ''}`,
   )
@@ -918,7 +945,7 @@ export async function runImport(o: Options, deps: { get?: Get } = {}) {
   if (!client) throw new Error('VITE_SANITY_PROJECT_ID is not set (.env)')
   if (!process.env.SANITY_WRITE_TOKEN)
     throw new Error('SANITY_WRITE_TOKEN is not set (.env); a build writes it')
-  if (unrelatedTotal && !o.confirm && !state.done.length)
+  if (unrelatedTotal && !o.confirm && !state.confirmed && !state.done.length)
     throw new ConfirmError(
       `the dataset already has ${countLabel(unrelatedTotal, 'document')} the importer did not write; pass --confirm to import alongside them (nothing is deleted or replaced)`,
     )
